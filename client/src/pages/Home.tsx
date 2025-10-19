@@ -149,14 +149,14 @@ export default function Home() {
   const priceSliderMin = 0;
   const priceSliderMax = setupSpotPrice * 3; // 300% del prezzo iniziale
 
-  // Input Black-Scholes
+  // Input Black-Scholes (converti solo risk-free da % a decimale, volatilità già in decimale)
   const callInputs: OptionInputs = useMemo(
     () => ({
       S: currentSpotPrice,
       K: strike,
       T: timeToExpiry,
-      r: riskFreeRate,
-      sigma: effectiveVolCall,
+      r: riskFreeRate / 100, // Converti da % a decimale (3.00 -> 0.03)
+      sigma: effectiveVolCall, // Già in decimale (0.25)
     }),
     [currentSpotPrice, strike, timeToExpiry, riskFreeRate, effectiveVolCall]
   );
@@ -166,8 +166,8 @@ export default function Home() {
       S: currentSpotPrice,
       K: strike,
       T: timeToExpiry,
-      r: riskFreeRate,
-      sigma: effectiveVolPut,
+      r: riskFreeRate / 100, // Converti da % a decimale
+      sigma: effectiveVolPut, // Già in decimale (0.25)
     }),
     [currentSpotPrice, strike, timeToExpiry, riskFreeRate, effectiveVolPut]
   );
@@ -226,11 +226,29 @@ export default function Home() {
       const atmStrike = Math.round(newPrice);
       setStrike(atmStrike);
       
-      // Premi realistici: ~3-5% del prezzo sottostante
-      const estimatedCallPremium = Number((newPrice * 0.04).toFixed(2));
-      const estimatedPutPremium = Number((newPrice * 0.035).toFixed(2));
-      setCallPremium(estimatedCallPremium);
-      setPutPremium(estimatedPutPremium);
+      // Imposta IV Base realistica (0.25 = 25% è un valore tipico per opzioni ATM a 60 giorni)
+      // Salva in decimale per coerenza con calculateImpliedVolatility
+      const realisticIV = 0.25; // Decimale (0.25 = 25%)
+      setCallIVBase(realisticIV);
+      setPutIVBase(realisticIV);
+      
+      // Calcola i premi usando Black-Scholes con la IV impostata
+      const timeToExpiry = tradeDuration / 365;
+      const callInputs: OptionInputs = {
+        S: newPrice,
+        K: atmStrike,
+        T: timeToExpiry,
+        r: riskFreeRate / 100,
+        sigma: realisticIV, // Già in decimale (0.25)
+      };
+      const putInputs = { ...callInputs };
+      
+      const callResult = calculateCall(callInputs);
+      const putResult = calculatePut(putInputs);
+      
+      // Imposta i premi calcolati (coerenti con la IV)
+      setCallPremium(Number(callResult.price.toFixed(2)));
+      setPutPremium(Number(putResult.price.toFixed(2)));
       
       // Reset slider a valori iniziali
       setCurrentDayIndex(0);
