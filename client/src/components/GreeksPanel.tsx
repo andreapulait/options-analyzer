@@ -77,13 +77,13 @@ export default function GreeksPanel({ callResult, putResult }: GreeksPanelProps)
             <p className="text-xs text-foreground/60">{greek.description}</p>
             <div className="grid grid-cols-2 gap-4 mt-2">
               <div className="space-y-1">
-                <div className="text-xs font-medium text-green-600 dark:text-green-400">Call</div>
+                <div className="text-xs font-medium text-blue-600 dark:text-blue-400">Call</div>
                 <div className="font-mono text-sm font-semibold text-foreground">
                   {greek.format(greek.callValue)}
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-xs font-medium text-red-600 dark:text-red-400">Put</div>
+                <div className="text-xs font-medium text-orange-600 dark:text-orange-400">Put</div>
                 <div className="font-mono text-sm font-semibold text-foreground">
                   {greek.format(greek.putValue)}
                 </div>
@@ -91,17 +91,17 @@ export default function GreeksPanel({ callResult, putResult }: GreeksPanelProps)
             </div>
             {/* Barra visiva per confronto */}
             <div className="grid grid-cols-2 gap-2 mt-2">
-              <div className="h-2 bg-green-500/20 rounded-full overflow-hidden">
+              <div className="h-2 bg-blue-500/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-green-500 transition-all duration-300"
+                  className="h-full bg-blue-500 transition-all duration-300"
                   style={{
                     width: `${Math.min(Math.abs(greek.callValue) * 100, 100)}%`,
                   }}
                 />
               </div>
-              <div className="h-2 bg-red-500/20 rounded-full overflow-hidden">
+              <div className="h-2 bg-orange-500/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-red-500 transition-all duration-300"
+                  className="h-full bg-orange-500 transition-all duration-300"
                   style={{
                     width: `${Math.min(Math.abs(greek.putValue) * 100, 100)}%`,
                   }}

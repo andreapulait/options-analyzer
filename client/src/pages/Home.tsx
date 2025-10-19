@@ -153,9 +153,25 @@ export default function Home() {
   const callResult = useMemo(() => calculateCall(callInputs), [callInputs]);
   const putResult = useMemo(() => calculatePut(putInputs), [putInputs]);
 
-  // Valore massimo per le barre
-  const maxValueCall = Math.max(callResult.price, callPremium, 1);
-  const maxValuePut = Math.max(putResult.price, putPremium, 1);
+  // Valore massimo per le barre con smoothing (evita cambi bruschi)
+  const [maxValueCall, setMaxValueCall] = useState(Math.max(callPremium, 1));
+  const [maxValuePut, setMaxValuePut] = useState(Math.max(putPremium, 1));
+
+  useEffect(() => {
+    const targetMaxCall = Math.max(callResult.price, callPremium, 1) * 1.1; // 10% di margine
+    const targetMaxPut = Math.max(putResult.price, putPremium, 1) * 1.1;
+
+    // Smoothing: aggiorna gradualmente verso il target
+    setMaxValueCall((prev) => {
+      const diff = targetMaxCall - prev;
+      return prev + diff * 0.3; // 30% del movimento per frame
+    });
+
+    setMaxValuePut((prev) => {
+      const diff = targetMaxPut - prev;
+      return prev + diff * 0.3;
+    });
+  }, [callResult.price, putResult.price, callPremium, putPremium]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -260,7 +276,7 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="callPremium" className="text-xs text-green-600 dark:text-green-400">
+                  <Label htmlFor="callPremium" className="text-xs text-blue-600 dark:text-blue-400">
                     Premio Call (€)
                   </Label>
                   <Input
@@ -278,7 +294,7 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="putPremium" className="text-xs text-red-600 dark:text-red-400">
+                  <Label htmlFor="putPremium" className="text-xs text-orange-600 dark:text-orange-400">
                     Premio Put (€)
                   </Label>
                   <Input
@@ -305,8 +321,8 @@ export default function Home() {
               {/* Call Option */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg text-green-600 dark:text-green-400 flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                  <CardTitle className="text-lg text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-blue-500"></span>
                     Call Option
                   </CardTitle>
                 </CardHeader>
@@ -315,19 +331,19 @@ export default function Home() {
                     label="Valore Intrinseco"
                     value={callResult.intrinsicValue}
                     maxValue={maxValueCall}
-                    color="#10b981"
+                    color="#3b82f6"
                   />
                   <ValueBar
                     label="Valore Estrinseco"
                     value={callResult.extrinsicValue}
                     maxValue={maxValueCall}
-                    color="#34d399"
+                    color="#60a5fa"
                   />
                   <ValueBar
                     label="Valore Totale"
                     value={callResult.price}
                     maxValue={maxValueCall}
-                    color="#059669"
+                    color="#2563eb"
                   />
                   <div className="pt-4 border-t border-border">
                     <div className="flex justify-between text-sm">
@@ -355,8 +371,8 @@ export default function Home() {
               {/* Put Option */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg text-red-600 dark:text-red-400 flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                  <CardTitle className="text-lg text-orange-600 dark:text-orange-400 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-orange-500"></span>
                     Put Option
                   </CardTitle>
                 </CardHeader>
@@ -365,19 +381,19 @@ export default function Home() {
                     label="Valore Intrinseco"
                     value={putResult.intrinsicValue}
                     maxValue={maxValuePut}
-                    color="#ef4444"
+                    color="#f97316"
                   />
                   <ValueBar
                     label="Valore Estrinseco"
                     value={putResult.extrinsicValue}
                     maxValue={maxValuePut}
-                    color="#f87171"
+                    color="#fb923c"
                   />
                   <ValueBar
                     label="Valore Totale"
                     value={putResult.price}
                     maxValue={maxValuePut}
-                    color="#dc2626"
+                    color="#ea580c"
                   />
                   <div className="pt-4 border-t border-border">
                     <div className="flex justify-between text-sm">
