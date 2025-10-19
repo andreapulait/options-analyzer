@@ -96,9 +96,48 @@ export default function Home() {
   const impliedVolCall = callIVBase;
   const impliedVolPut = putIVBase;
 
-  // IV calcolata rimossa - ora l'IV Base è controllata solo manualmente dall'utente
-  // I premi inseriti manualmente rimangono fissi come "premio iniziale"
-  // Il sistema calcola solo il "valore corrente" con gli slider
+  // Funzioni per ricalcolare IV quando l'utente modifica manualmente i premi
+  const handleCallPremiumBlur = () => {
+    if (callPremium > 0 && tradeDuration > 0) {
+      const timeToExpiry = tradeDuration / 365;
+      const iv = calculateImpliedVolatility(
+        callPremium,
+        setupSpotPrice,
+        strike,
+        timeToExpiry,
+        riskFreeRate / 100,
+        true
+      );
+      if (iv && iv > 0 && iv < 2) { // Solo se IV è realistica (0-200%)
+        setCallIVBase(iv);
+        // Reset slider quando si modifica manualmente il premio
+        setCurrentSpotPrice(setupSpotPrice);
+        setCurrentDayIndex(0);
+        setVolatilityAdjustment(0);
+      }
+    }
+  };
+
+  const handlePutPremiumBlur = () => {
+    if (putPremium > 0 && tradeDuration > 0) {
+      const timeToExpiry = tradeDuration / 365;
+      const iv = calculateImpliedVolatility(
+        putPremium,
+        setupSpotPrice,
+        strike,
+        timeToExpiry,
+        riskFreeRate / 100,
+        false
+      );
+      if (iv && iv > 0 && iv < 2) { // Solo se IV è realistica (0-200%)
+        setPutIVBase(iv);
+        // Reset slider quando si modifica manualmente il premio
+        setCurrentSpotPrice(setupSpotPrice);
+        setCurrentDayIndex(0);
+        setVolatilityAdjustment(0);
+      }
+    }
+  };
 
   // Volatilità effettiva
   const effectiveVolCall = useMemo(() => {
@@ -458,11 +497,14 @@ export default function Home() {
                   <Input
                     type="number"
                     value={callPremium.toFixed(2)}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      setTimeout(() => e.target.select(), 0);
+                    }}
                     onChange={(e) => {
                       setCallPremium(Number(e.target.value));
-                      // Non resettare IV Base, l'utente ha fatto override manuale
                     }}
+                    onBlur={handleCallPremiumBlur}
                     className="h-8 bg-slate-800 border-slate-700 text-blue-300"
                   />
                   <div className="flex items-center gap-2 mt-1">
@@ -482,11 +524,14 @@ export default function Home() {
                   <Input
                     type="number"
                     value={putPremium.toFixed(2)}
-                    onFocus={(e) => e.target.select()}
+                    onFocus={(e) => {
+                      e.target.select();
+                      setTimeout(() => e.target.select(), 0);
+                    }}
                     onChange={(e) => {
                       setPutPremium(Number(e.target.value));
-                      // Non resettare IV Base, l'utente ha fatto override manuale
                     }}
+                    onBlur={handlePutPremiumBlur}
                     className="h-8 bg-slate-800 border-slate-700 text-orange-300"
                   />
                   <div className="flex items-center gap-2 mt-1">
