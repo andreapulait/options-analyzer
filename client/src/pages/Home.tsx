@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { calculateCall, calculatePut, calculateImpliedVolatility, type OptionInputs } from '@/lib/blackScholes';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, TrendingDown, Minus, RotateCcw } from 'lucide-react';
 
 export default function Home() {
   // Valori iniziali del setup
@@ -153,6 +154,13 @@ export default function Home() {
   const putPnL = putResult.price - putPremium;
   const callPnLPercent = (callPnL / callPremium) * 100;
   const putPnLPercent = (putPnL / putPremium) * 100;
+
+  // Funzione reset slider
+  const handleResetSliders = () => {
+    setCurrentSpotPrice(setupSpotPrice);
+    setCurrentDayIndex(0);
+    setVolatilityAdjustment(0);
+  };
 
   // Componente per indicatore trend
   const TrendIndicator = ({ value, percent }: { value: number; percent: number }) => {
@@ -392,7 +400,18 @@ export default function Home() {
             {/* Slider di simulazione */}
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader>
-                <CardTitle className="text-base text-slate-300">Controlli Simulazione</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-base text-slate-300">Controlli Simulazione</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetSliders}
+                    className="h-8 gap-2 bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
