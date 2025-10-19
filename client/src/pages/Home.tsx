@@ -498,8 +498,17 @@ export default function Home() {
                     type="number"
                     value={callPremium.toFixed(2)}
                     onFocus={(e) => {
-                      e.target.select();
-                      setTimeout(() => e.target.select(), 0);
+                      // Usa setTimeout per assicurare che la selezione avvenga dopo il focus
+                      setTimeout(() => {
+                        e.target.select();
+                      }, 0);
+                    }}
+                    onMouseDown={(e) => {
+                      // Se il campo non è già focalizzato, previeni il comportamento predefinito
+                      if (document.activeElement !== e.target) {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).focus();
+                      }
                     }}
                     onChange={(e) => {
                       setCallPremium(Number(e.target.value));
@@ -525,8 +534,17 @@ export default function Home() {
                     type="number"
                     value={putPremium.toFixed(2)}
                     onFocus={(e) => {
-                      e.target.select();
-                      setTimeout(() => e.target.select(), 0);
+                      // Usa setTimeout per assicurare che la selezione avvenga dopo il focus
+                      setTimeout(() => {
+                        e.target.select();
+                      }, 0);
+                    }}
+                    onMouseDown={(e) => {
+                      // Se il campo non è già focalizzato, previeni il comportamento predefinito
+                      if (document.activeElement !== e.target) {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).focus();
+                      }
                     }}
                     onChange={(e) => {
                       setPutPremium(Number(e.target.value));
