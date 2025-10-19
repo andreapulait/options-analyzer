@@ -31,6 +31,10 @@ export default function Home() {
   const [currentSpotPrice, setCurrentSpotPrice] = useState(initialSpotPrice);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [volatilityAdjustment, setVolatilityAdjustment] = useState(0);
+  
+  // IV Base editabili (inizialmente null, poi calcolate dai premi)
+  const [callIVBase, setCallIVBase] = useState<number | null>(null);
+  const [putIVBase, setPutIVBase] = useState<number | null>(null);
 
   // Calcolo durata trade
   const tradeDuration = useMemo(() => {
@@ -49,9 +53,13 @@ export default function Home() {
     setCurrentDayIndex(0);
   }, [tradeDuration]);
 
-  // Volatilità implicita
-  const [impliedVolCall, setImpliedVolCall] = useState(0.25);
-  const [impliedVolPut, setImpliedVolPut] = useState(0.25);
+  // Volatilità implicita calcolata
+  const [impliedVolCallCalculated, setImpliedVolCallCalculated] = useState(0.25);
+  const [impliedVolPutCalculated, setImpliedVolPutCalculated] = useState(0.25);
+  
+  // IV effettiva: usa IV Base se editata, altrimenti quella calcolata
+  const impliedVolCall = callIVBase !== null ? callIVBase : impliedVolCallCalculated;
+  const impliedVolPut = putIVBase !== null ? putIVBase : impliedVolPutCalculated;
 
   // Calcolo premi iniziali
   useEffect(() => {
@@ -87,7 +95,11 @@ export default function Home() {
         riskFreeRate,
         true
       );
-      setImpliedVolCall(iv);
+      setImpliedVolCallCalculated(iv);
+      // Aggiorna IV Base solo se non è stata modificata manualmente
+      if (callIVBase === null) {
+        setCallIVBase(iv);
+      }
     }
   }, [callPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
 
@@ -102,7 +114,11 @@ export default function Home() {
         riskFreeRate,
         false
       );
-      setImpliedVolPut(iv);
+      setImpliedVolPutCalculated(iv);
+      // Aggiorna IV Base solo se non è stata modificata manualmente
+      if (putIVBase === null) {
+        setPutIVBase(iv);
+      }
     }
   }, [putPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
 
@@ -259,6 +275,7 @@ export default function Home() {
                   <Input
                     type="number"
                     value={setupSpotPrice}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => {
                       const val = Number(e.target.value);
                       setSetupSpotPrice(val);
@@ -272,6 +289,7 @@ export default function Home() {
                   <Input
                     type="number"
                     value={strike}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setStrike(Number(e.target.value))}
                     className="h-8 bg-slate-800 border-slate-700 text-white"
                   />
@@ -303,6 +321,7 @@ export default function Home() {
                   <Input
                     type="number"
                     value={(riskFreeRate * 100).toFixed(2)}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => setRiskFreeRate(Number(e.target.value) / 100)}
                     className="h-8 bg-slate-800 border-slate-700 text-white"
                   />
@@ -320,20 +339,48 @@ export default function Home() {
                   <Input
                     type="number"
                     value={callPremium.toFixed(2)}
-                    onChange={(e) => setCallPremium(Number(e.target.value))}
-                    className="h-8 bg-slate-800 border-slate-700 text-white"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      setCallPremium(Number(e.target.value));
+                      setCallIVBase(null); // Reset per ricalcolare
+                    }}
+                    className="h-8 bg-slate-800 border-slate-700 text-blue-300"
                   />
-                  <p className="text-xs text-slate-500 mt-1">IV: {(impliedVolCall * 100).toFixed(1)}%</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Label className="text-xs text-slate-500">IV Base (%):</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={(impliedVolCall * 100).toFixed(1)}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setCallIVBase(Number(e.target.value) / 100)}
+                      className="h-6 text-xs bg-slate-800 border-slate-700 text-blue-300 w-20"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs text-orange-400">Premio Put</Label>
                   <Input
                     type="number"
                     value={putPremium.toFixed(2)}
-                    onChange={(e) => setPutPremium(Number(e.target.value))}
-                    className="h-8 bg-slate-800 border-slate-700 text-white"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      setPutPremium(Number(e.target.value));
+                      setPutIVBase(null); // Reset per ricalcolare
+                    }}
+                    className="h-8 bg-slate-800 border-slate-700 text-orange-300"
                   />
-                  <p className="text-xs text-slate-500 mt-1">IV: {(impliedVolPut * 100).toFixed(1)}%</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Label className="text-xs text-slate-500">IV Base (%):</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={(impliedVolPut * 100).toFixed(1)}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setPutIVBase(Number(e.target.value) / 100)}
+                      className="h-6 text-xs bg-slate-800 border-slate-700 text-orange-300 w-20"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -501,8 +548,8 @@ export default function Home() {
                     <Slider
                       value={[volatilityAdjustment]}
                       onValueChange={(val) => setVolatilityAdjustment(val[0])}
-                      min={-100}
-                      max={100}
+                    min={-50}
+                    max={50}
                       step={1}
                       className="w-full"
                     />
@@ -513,9 +560,9 @@ export default function Home() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>-100%</span>
+                    <span>-50%</span>
                     <span className="text-yellow-400">0%</span>
-                    <span>+100%</span>
+                    <span>+50%</span>
                   </div>
                 </div>
               </CardContent>
