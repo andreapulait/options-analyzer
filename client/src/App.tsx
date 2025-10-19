@@ -9,7 +9,10 @@ import Home from "./pages/Home";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"}>
+        {/* Key forces remount when logic changes - increment to reset state */}
+        <Home key="v2" />
+      </Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

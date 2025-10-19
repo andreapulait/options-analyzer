@@ -12,7 +12,8 @@ export default function Home() {
   // Valori iniziali del setup
   const initialSpotPrice = 100;
   const initialStrike = 100;
-  const initialRiskFreeRate = 0.03;
+  const initialRiskFreeRate = 3; // 3% (in percentuale, sarà convertito in decimale)
+  const initialIV = 0.25; // 25% (in decimale)
 
   // Date
   const today = new Date();
@@ -35,17 +36,40 @@ export default function Home() {
   const [tradeStartDate, setTradeStartDate] = useState(today.toISOString().split('T')[0]);
   const [expiryDate, setExpiryDate] = useState(defaultExpiry.toISOString().split('T')[0]);
   const [riskFreeRate, setRiskFreeRate] = useState(initialRiskFreeRate);
-  const [callPremium, setCallPremium] = useState<number>(0);
-  const [putPremium, setPutPremium] = useState<number>(0);
+  
+  // Premi iniziali calcolati con lazy initializer
+  const [callPremium, setCallPremium] = useState<number>(() => {
+    const timeToExpiry = 60 / 365;
+    const inputs: OptionInputs = {
+      S: initialSpotPrice,
+      K: initialStrike,
+      T: timeToExpiry,
+      r: initialRiskFreeRate / 100, // Converti da % a decimale
+      sigma: initialIV,
+    };
+    return Number(calculateCall(inputs).price.toFixed(2));
+  });
+  
+  const [putPremium, setPutPremium] = useState<number>(() => {
+    const timeToExpiry = 60 / 365;
+    const inputs: OptionInputs = {
+      S: initialSpotPrice,
+      K: initialStrike,
+      T: timeToExpiry,
+      r: initialRiskFreeRate / 100, // Converti da % a decimale
+      sigma: initialIV,
+    };
+    return Number(calculatePut(inputs).price.toFixed(2));
+  });
 
   // Stati per gli slider
   const [currentSpotPrice, setCurrentSpotPrice] = useState(initialSpotPrice);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [volatilityAdjustment, setVolatilityAdjustment] = useState(0);
   
-  // IV Base editabili (inizialmente null, poi calcolate dai premi)
-  const [callIVBase, setCallIVBase] = useState<number | null>(null);
-  const [putIVBase, setPutIVBase] = useState<number | null>(null);
+  // IV Base editabili (inizializzate con IV iniziale per coerenza)
+  const [callIVBase, setCallIVBase] = useState<number>(initialIV);
+  const [putIVBase, setPutIVBase] = useState<number>(initialIV);
 
   // Calcolo durata trade
   const tradeDuration = useMemo(() => {
@@ -68,31 +92,9 @@ export default function Home() {
   const [impliedVolCallCalculated, setImpliedVolCallCalculated] = useState(0.25);
   const [impliedVolPutCalculated, setImpliedVolPutCalculated] = useState(0.25);
   
-  // IV effettiva: usa IV Base se editata, altrimenti quella calcolata
-  const impliedVolCall = callIVBase !== null ? callIVBase : impliedVolCallCalculated;
-  const impliedVolPut = putIVBase !== null ? putIVBase : impliedVolPutCalculated;
-
-  // Calcolo premi iniziali
-  useEffect(() => {
-    const timeToExpiry = tradeDuration / 365;
-    const baseInputs: OptionInputs = {
-      S: setupSpotPrice,
-      K: strike,
-      T: timeToExpiry,
-      r: riskFreeRate,
-      sigma: 0.25,
-    };
-
-    const callResult = calculateCall(baseInputs);
-    const putResult = calculatePut(baseInputs);
-
-    if (callPremium === 0) {
-      setCallPremium(callResult.price);
-    }
-    if (putPremium === 0) {
-      setPutPremium(putResult.price);
-    }
-  }, []);
+  // IV effettiva: usa sempre IV Base (editabile dall'utente)
+  const impliedVolCall = callIVBase;
+  const impliedVolPut = putIVBase;
 
   // Ricalcolo IV
   useEffect(() => {
@@ -103,14 +105,11 @@ export default function Home() {
         setupSpotPrice,
         strike,
         timeToExpiry,
-        riskFreeRate,
+        riskFreeRate / 100, // Converti da % a decimale
         true
       );
       setImpliedVolCallCalculated(iv);
-      // Aggiorna IV Base solo se non è stata modificata manualmente
-      if (callIVBase === null) {
-        setCallIVBase(iv);
-      }
+      // IV Base rimane quella impostata dall'utente o dal fetch ticker
     }
   }, [callPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
 
@@ -122,14 +121,11 @@ export default function Home() {
         setupSpotPrice,
         strike,
         timeToExpiry,
-        riskFreeRate,
+        riskFreeRate / 100, // Converti da % a decimale
         false
       );
       setImpliedVolPutCalculated(iv);
-      // Aggiorna IV Base solo se non è stata modificata manualmente
-      if (putIVBase === null) {
-        setPutIVBase(iv);
-      }
+      // IV Base rimane quella impostata dall'utente o dal fetch ticker
     }
   }, [putPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
 
@@ -494,7 +490,7 @@ export default function Home() {
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => {
                       setCallPremium(Number(e.target.value));
-                      setCallIVBase(null); // Reset per ricalcolare
+                      // Non resettare IV Base, l'utente ha fatto override manuale
                     }}
                     className="h-8 bg-slate-800 border-slate-700 text-blue-300"
                   />
@@ -518,7 +514,7 @@ export default function Home() {
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => {
                       setPutPremium(Number(e.target.value));
-                      setPutIVBase(null); // Reset per ricalcolare
+                      // Non resettare IV Base, l'utente ha fatto override manuale
                     }}
                     className="h-8 bg-slate-800 border-slate-700 text-orange-300"
                   />
