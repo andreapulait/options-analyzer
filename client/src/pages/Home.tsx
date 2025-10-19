@@ -610,7 +610,10 @@ export default function Home() {
                       type="number"
                       step="0.1"
                       value={(impliedVolCall * 100).toFixed(1)}
-                      onFocus={(e) => e.target.select()}
+                      onClick={(e) => {
+                        // Seleziona tutto il testo quando si clicca sul campo
+                        (e.target as HTMLInputElement).select();
+                      }}
                       onChange={(e) => {
                         const newCallIV = Number(e.target.value) / 100;
                         handleManualIVChange(newCallIV, putIVBase);
@@ -661,7 +664,10 @@ export default function Home() {
                       type="number"
                       step="0.1"
                       value={(impliedVolPut * 100).toFixed(1)}
-                      onFocus={(e) => e.target.select()}
+                      onClick={(e) => {
+                        // Seleziona tutto il testo quando si clicca sul campo
+                        (e.target as HTMLInputElement).select();
+                      }}
                       onChange={(e) => {
                         const newPutIV = Number(e.target.value) / 100;
                         handleManualIVChange(callIVBase, newPutIV);
