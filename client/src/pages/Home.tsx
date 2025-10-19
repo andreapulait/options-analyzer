@@ -198,7 +198,7 @@ export default function Home() {
     setVolatilityAdjustment(0);
   };
 
-  // Funzione fetch prezzo con sistema multi-API
+  // Funzione fetch prezzo con sistema multi-API e reset automatico
   const handleFetchPrice = async () => {
     if (!ticker.trim()) {
       setFetchError('Inserisci un ticker');
@@ -217,8 +217,25 @@ export default function Home() {
       const result = await fetchPrice(ticker, config);
       
       const newPrice = Number(result.price.toFixed(2));
+      
+      // Reset completo del setup come nuovo punto di partenza
       setSetupSpotPrice(newPrice);
       setCurrentSpotPrice(newPrice);
+      
+      // Strike ATM arrotondato al più vicino intero
+      const atmStrike = Math.round(newPrice);
+      setStrike(atmStrike);
+      
+      // Premi realistici: ~3-5% del prezzo sottostante
+      const estimatedCallPremium = Number((newPrice * 0.04).toFixed(2));
+      const estimatedPutPremium = Number((newPrice * 0.035).toFixed(2));
+      setCallPremium(estimatedCallPremium);
+      setPutPremium(estimatedPutPremium);
+      
+      // Reset slider a valori iniziali
+      setCurrentDayIndex(0);
+      setVolatilityAdjustment(0);
+      
       setLastFetchTime(result.timestamp.toLocaleTimeString('it-IT'));
       setLastFetchSource(result.source);
       setFetchError(null);
