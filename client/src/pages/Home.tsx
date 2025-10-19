@@ -703,21 +703,21 @@ export default function Home() {
           </div>
 
           {/* Area principale */}
-          <div className="lg:col-span-7 space-y-4">
+          <div className="lg:col-span-7 space-y-2">
             {/* Card grandi Call e Put */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Call Option */}
               <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-white/90">Call Option</h3>
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-base font-semibold text-white/90">Call Option</h3>
                     <TrendIndicator value={callPnLLong} percent={callPnLLongPercent} />
                   </div>
-                  <div className="text-5xl font-bold text-white mb-1">{displayCallPrice.toFixed(2)}</div>
-                  <div className="text-sm text-white/70">
+                  <div className="text-4xl font-bold text-white mb-1">{displayCallPrice.toFixed(2)}</div>
+                  <div className="text-xs text-white/70">
                     Premio iniziale: {callPremium.toFixed(2)}
                   </div>
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-2 space-y-0.5">
                     <div className={`text-sm font-semibold ${callPnLLong >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                       P&L Long: {callPnLLong >= 0 ? '+' : ''}{callPnLLong.toFixed(2)} ({callPnLLong >= 0 ? '+' : ''}{callPnLLongPercent.toFixed(1)}%)
                     </div>
@@ -730,16 +730,16 @@ export default function Home() {
 
               {/* Put Option */}
               <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0 shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-white/90">Put Option</h3>
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-base font-semibold text-white/90">Put Option</h3>
                     <TrendIndicator value={putPnLLong} percent={putPnLLongPercent} />
                   </div>
-                  <div className="text-5xl font-bold text-white mb-1">{displayPutPrice.toFixed(2)}</div>
-                  <div className="text-sm text-white/70">
+                  <div className="text-4xl font-bold text-white mb-1">{displayPutPrice.toFixed(2)}</div>
+                  <div className="text-xs text-white/70">
                     Premio iniziale: {putPremium.toFixed(2)}
                   </div>
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-2 space-y-0.5">
                     <div className={`text-sm font-semibold ${putPnLLong >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                       P&L Long: {putPnLLong >= 0 ? '+' : ''}{putPnLLong.toFixed(2)} ({putPnLLong >= 0 ? '+' : ''}{putPnLLongPercent.toFixed(1)}%)
                     </div>
@@ -752,29 +752,29 @@ export default function Home() {
             </div>
 
             {/* Metriche secondarie */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <Card className="bg-slate-900 border-slate-800">
-                <CardContent className="pt-4 pb-3">
-                  <div className="text-xs text-slate-400 mb-1">Intrinseco Call</div>
-                  <div className="text-2xl font-bold text-blue-400">{callResult.intrinsicValue.toFixed(2)}</div>
+                <CardContent className="pt-2 pb-2">
+                  <div className="text-xs text-slate-400 mb-0.5">Intrinseco Call</div>
+                  <div className="text-xl font-bold text-blue-400">{callResult.intrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900 border-slate-800">
-                <CardContent className="pt-4 pb-3">
-                  <div className="text-xs text-slate-400 mb-1">Estrinseco Call</div>
-                  <div className="text-2xl font-bold text-blue-400">{callResult.extrinsicValue.toFixed(2)}</div>
+                <CardContent className="pt-2 pb-2">
+                  <div className="text-xs text-slate-400 mb-0.5">Estrinseco Call</div>
+                  <div className="text-xl font-bold text-blue-400">{callResult.extrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900 border-slate-800">
-                <CardContent className="pt-4 pb-3">
-                  <div className="text-xs text-slate-400 mb-1">Intrinseco Put</div>
-                  <div className="text-2xl font-bold text-orange-400">{putResult.intrinsicValue.toFixed(2)}</div>
+                <CardContent className="pt-2 pb-2">
+                  <div className="text-xs text-slate-400 mb-0.5">Intrinseco Put</div>
+                  <div className="text-xl font-bold text-orange-400">{putResult.intrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900 border-slate-800">
-                <CardContent className="pt-4 pb-3">
-                  <div className="text-xs text-slate-400 mb-1">Estrinseco Put</div>
-                  <div className="text-2xl font-bold text-orange-400">{putResult.extrinsicValue.toFixed(2)}</div>
+                <CardContent className="pt-2 pb-2">
+                  <div className="text-xs text-slate-400 mb-0.5">Estrinseco Put</div>
+                  <div className="text-xl font-bold text-orange-400">{putResult.extrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
             </div>
@@ -795,9 +795,9 @@ export default function Home() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-3 py-3">
                 <div>
-                  <div className="flex justify-between mb-2">
+                  <div className="flex justify-between mb-1">
                     <Label className="text-sm text-slate-300">Prezzo Sottostante</Label>
                     <span className="text-sm font-semibold text-white">
                       {currentSpotPrice.toFixed(2)} 
@@ -829,7 +829,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <div className="flex justify-between mb-2">
+                  <div className="flex justify-between mb-1">
                     <Label className="text-sm text-slate-300">Tempo (DTE)</Label>
                     <span className="text-sm font-semibold text-white">
                       {currentDTE} giorni
@@ -853,7 +853,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <div className="flex justify-between mb-2">
+                  <div className="flex justify-between mb-1">
                     <Label className="text-sm text-slate-300">Volatilità</Label>
                     <span className="text-sm font-semibold text-white">
                       {volatilityAdjustment > 0 ? '+' : ''}
