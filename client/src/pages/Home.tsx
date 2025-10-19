@@ -591,23 +591,8 @@ export default function Home() {
                       if (newPremium > 0) {
                         setCallPremium(newPremium);
                         
-                        // Ricalcola IV implicita dal nuovo premio
-                        if (tradeDuration > 0) {
-                          const timeToExpiry = tradeDuration / 365;
-                          const iv = calculateImpliedVolatility(
-                            newPremium,
-                            setupSpotPrice,
-                            strike,
-                            timeToExpiry,
-                            riskFreeRate / 100,
-                            true
-                          );
-                          if (iv && iv > 0 && iv < 2) {
-                            setCallIVBase(iv);
-                          }
-                        }
-                        
                         // Reset slider quando si modifica manualmente il premio
+                        // NON ricalcola la IV - l'utente vuole testare con questi valori specifici
                         setCurrentSpotPrice(setupSpotPrice);
                         setCurrentDayIndex(0);
                         setVolatilityAdjustment(0);
@@ -632,7 +617,14 @@ export default function Home() {
                       onBlur={() => {
                         const newCallIV = Number(tempCallIV) / 100;
                         if (newCallIV > 0) {
-                          handleManualIVChange(newCallIV, putIVBase);
+                          // Aggiorna solo la IV, NON ricalcola il premio
+                          // L'utente vuole testare con questi valori specifici
+                          setCallIVBase(newCallIV);
+                          
+                          // Reset slider
+                          setCurrentSpotPrice(setupSpotPrice);
+                          setCurrentDayIndex(0);
+                          setVolatilityAdjustment(0);
                         }
                         setTempCallIV('');
                       }}
@@ -657,23 +649,8 @@ export default function Home() {
                       if (newPremium > 0) {
                         setPutPremium(newPremium);
                         
-                        // Ricalcola IV implicita dal nuovo premio
-                        if (tradeDuration > 0) {
-                          const timeToExpiry = tradeDuration / 365;
-                          const iv = calculateImpliedVolatility(
-                            newPremium,
-                            setupSpotPrice,
-                            strike,
-                            timeToExpiry,
-                            riskFreeRate / 100,
-                            false
-                          );
-                          if (iv && iv > 0 && iv < 2) {
-                            setPutIVBase(iv);
-                          }
-                        }
-                        
                         // Reset slider quando si modifica manualmente il premio
+                        // NON ricalcola la IV - l'utente vuole testare con questi valori specifici
                         setCurrentSpotPrice(setupSpotPrice);
                         setCurrentDayIndex(0);
                         setVolatilityAdjustment(0);
@@ -698,7 +675,14 @@ export default function Home() {
                       onBlur={() => {
                         const newPutIV = Number(tempPutIV) / 100;
                         if (newPutIV > 0) {
-                          handleManualIVChange(callIVBase, newPutIV);
+                          // Aggiorna solo la IV, NON ricalcola il premio
+                          // L'utente vuole testare con questi valori specifici
+                          setPutIVBase(newPutIV);
+                          
+                          // Reset slider
+                          setCurrentSpotPrice(setupSpotPrice);
+                          setCurrentDayIndex(0);
+                          setVolatilityAdjustment(0);
                         }
                         setTempPutIV('');
                       }}
