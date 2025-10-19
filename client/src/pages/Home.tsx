@@ -70,6 +70,12 @@ export default function Home() {
   // IV Base editabili (inizializzate con IV iniziale per coerenza)
   const [callIVBase, setCallIVBase] = useState<number>(initialIV);
   const [putIVBase, setPutIVBase] = useState<number>(initialIV);
+  
+  // Stati temporanei per i campi durante la digitazione
+  const [tempCallPremium, setTempCallPremium] = useState<string>('');
+  const [tempPutPremium, setTempPutPremium] = useState<string>('');
+  const [tempCallIV, setTempCallIV] = useState<string>('');
+  const [tempPutIV, setTempPutIV] = useState<string>('');
 
   // Calcolo durata trade
   const tradeDuration = useMemo(() => {
@@ -572,35 +578,41 @@ export default function Home() {
                   <Label className="text-xs text-blue-400">Premio Call</Label>
                   <Input
                     type="number"
-                    value={callPremium.toFixed(2)}
-                    onClick={(e) => {
-                      // Seleziona tutto il testo quando si clicca sul campo
-                      (e.target as HTMLInputElement).select();
+                    value={tempCallPremium || callPremium.toFixed(2)}
+                    onFocus={(e) => {
+                      e.target.select();
+                      setTempCallPremium(callPremium.toFixed(2));
                     }}
                     onChange={(e) => {
-                      const newPremium = Number(e.target.value);
-                      setCallPremium(newPremium);
-                      
-                      // Ricalcola IV implicita dal nuovo premio
-                      if (newPremium > 0 && tradeDuration > 0) {
-                        const timeToExpiry = tradeDuration / 365;
-                        const iv = calculateImpliedVolatility(
-                          newPremium,
-                          setupSpotPrice,
-                          strike,
-                          timeToExpiry,
-                          riskFreeRate / 100,
-                          true
-                        );
-                        if (iv && iv > 0 && iv < 2) {
-                          setCallIVBase(iv);
+                      setTempCallPremium(e.target.value);
+                    }}
+                    onBlur={() => {
+                      const newPremium = Number(tempCallPremium);
+                      if (newPremium > 0) {
+                        setCallPremium(newPremium);
+                        
+                        // Ricalcola IV implicita dal nuovo premio
+                        if (tradeDuration > 0) {
+                          const timeToExpiry = tradeDuration / 365;
+                          const iv = calculateImpliedVolatility(
+                            newPremium,
+                            setupSpotPrice,
+                            strike,
+                            timeToExpiry,
+                            riskFreeRate / 100,
+                            true
+                          );
+                          if (iv && iv > 0 && iv < 2) {
+                            setCallIVBase(iv);
+                          }
                         }
+                        
+                        // Reset slider quando si modifica manualmente il premio
+                        setCurrentSpotPrice(setupSpotPrice);
+                        setCurrentDayIndex(0);
+                        setVolatilityAdjustment(0);
                       }
-                      
-                      // Reset slider quando si modifica manualmente il premio
-                      setCurrentSpotPrice(setupSpotPrice);
-                      setCurrentDayIndex(0);
-                      setVolatilityAdjustment(0);
+                      setTempCallPremium('');
                     }}
                     className="h-8 bg-slate-800 border-slate-700 text-blue-300"
                   />
@@ -609,14 +621,20 @@ export default function Home() {
                     <Input
                       type="number"
                       step="0.1"
-                      value={(impliedVolCall * 100).toFixed(1)}
-                      onClick={(e) => {
-                        // Seleziona tutto il testo quando si clicca sul campo
-                        (e.target as HTMLInputElement).select();
+                      value={tempCallIV || (impliedVolCall * 100).toFixed(1)}
+                      onFocus={(e) => {
+                        e.target.select();
+                        setTempCallIV((impliedVolCall * 100).toFixed(1));
                       }}
                       onChange={(e) => {
-                        const newCallIV = Number(e.target.value) / 100;
-                        handleManualIVChange(newCallIV, putIVBase);
+                        setTempCallIV(e.target.value);
+                      }}
+                      onBlur={() => {
+                        const newCallIV = Number(tempCallIV) / 100;
+                        if (newCallIV > 0) {
+                          handleManualIVChange(newCallIV, putIVBase);
+                        }
+                        setTempCallIV('');
                       }}
                       className="h-6 text-xs bg-slate-800 border-slate-700 text-blue-300 w-20"
                     />
@@ -626,35 +644,41 @@ export default function Home() {
                   <Label className="text-xs text-orange-400">Premio Put</Label>
                   <Input
                     type="number"
-                    value={putPremium.toFixed(2)}
-                    onClick={(e) => {
-                      // Seleziona tutto il testo quando si clicca sul campo
-                      (e.target as HTMLInputElement).select();
+                    value={tempPutPremium || putPremium.toFixed(2)}
+                    onFocus={(e) => {
+                      e.target.select();
+                      setTempPutPremium(putPremium.toFixed(2));
                     }}
                     onChange={(e) => {
-                      const newPremium = Number(e.target.value);
-                      setPutPremium(newPremium);
-                      
-                      // Ricalcola IV implicita dal nuovo premio
-                      if (newPremium > 0 && tradeDuration > 0) {
-                        const timeToExpiry = tradeDuration / 365;
-                        const iv = calculateImpliedVolatility(
-                          newPremium,
-                          setupSpotPrice,
-                          strike,
-                          timeToExpiry,
-                          riskFreeRate / 100,
-                          false
-                        );
-                        if (iv && iv > 0 && iv < 2) {
-                          setPutIVBase(iv);
+                      setTempPutPremium(e.target.value);
+                    }}
+                    onBlur={() => {
+                      const newPremium = Number(tempPutPremium);
+                      if (newPremium > 0) {
+                        setPutPremium(newPremium);
+                        
+                        // Ricalcola IV implicita dal nuovo premio
+                        if (tradeDuration > 0) {
+                          const timeToExpiry = tradeDuration / 365;
+                          const iv = calculateImpliedVolatility(
+                            newPremium,
+                            setupSpotPrice,
+                            strike,
+                            timeToExpiry,
+                            riskFreeRate / 100,
+                            false
+                          );
+                          if (iv && iv > 0 && iv < 2) {
+                            setPutIVBase(iv);
+                          }
                         }
+                        
+                        // Reset slider quando si modifica manualmente il premio
+                        setCurrentSpotPrice(setupSpotPrice);
+                        setCurrentDayIndex(0);
+                        setVolatilityAdjustment(0);
                       }
-                      
-                      // Reset slider quando si modifica manualmente il premio
-                      setCurrentSpotPrice(setupSpotPrice);
-                      setCurrentDayIndex(0);
-                      setVolatilityAdjustment(0);
+                      setTempPutPremium('');
                     }}
                     className="h-8 bg-slate-800 border-slate-700 text-orange-300"
                   />
@@ -663,14 +687,20 @@ export default function Home() {
                     <Input
                       type="number"
                       step="0.1"
-                      value={(impliedVolPut * 100).toFixed(1)}
-                      onClick={(e) => {
-                        // Seleziona tutto il testo quando si clicca sul campo
-                        (e.target as HTMLInputElement).select();
+                      value={tempPutIV || (impliedVolPut * 100).toFixed(1)}
+                      onFocus={(e) => {
+                        e.target.select();
+                        setTempPutIV((impliedVolPut * 100).toFixed(1));
                       }}
                       onChange={(e) => {
-                        const newPutIV = Number(e.target.value) / 100;
-                        handleManualIVChange(callIVBase, newPutIV);
+                        setTempPutIV(e.target.value);
+                      }}
+                      onBlur={() => {
+                        const newPutIV = Number(tempPutIV) / 100;
+                        if (newPutIV > 0) {
+                          handleManualIVChange(callIVBase, newPutIV);
+                        }
+                        setTempPutIV('');
                       }}
                       className="h-6 text-xs bg-slate-800 border-slate-700 text-orange-300 w-20"
                     />
