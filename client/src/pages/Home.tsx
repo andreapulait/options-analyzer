@@ -149,11 +149,20 @@ export default function Home() {
   const callResult = useMemo(() => calculateCall(callInputs), [callInputs]);
   const putResult = useMemo(() => calculatePut(putInputs), [putInputs]);
 
-  // P&L
-  const callPnL = callResult.price - callPremium;
-  const putPnL = putResult.price - putPremium;
-  const callPnLPercent = (callPnL / callPremium) * 100;
-  const putPnLPercent = (putPnL / putPremium) * 100;
+  // P&L Long (Compratore) e Short (Venditore)
+  const callPnLLong = callResult.price - callPremium;
+  const putPnLLong = putResult.price - putPremium;
+  const callPnLShort = -callPnLLong; // Opposto del long
+  const putPnLShort = -putPnLLong;
+  
+  const callPnLLongPercent = (callPnLLong / callPremium) * 100;
+  const putPnLLongPercent = (putPnLLong / putPremium) * 100;
+  const callPnLShortPercent = -callPnLLongPercent;
+  const putPnLShortPercent = -putPnLLongPercent;
+
+  // Percentuali di variazione
+  const priceChangePercent = ((currentSpotPrice - setupSpotPrice) / setupSpotPrice) * 100;
+  const timeElapsedPercent = (currentDayIndex / tradeDuration) * 100;
 
   // Funzione reset slider
   const handleResetSliders = () => {
@@ -339,14 +348,19 @@ export default function Home() {
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="text-lg font-semibold text-white/90">Call Option</h3>
-                    <TrendIndicator value={callPnL} percent={callPnLPercent} />
+                    <TrendIndicator value={callPnLLong} percent={callPnLLongPercent} />
                   </div>
                   <div className="text-5xl font-bold text-white mb-1">{callResult.price.toFixed(2)}</div>
                   <div className="text-sm text-white/70">
                     Premio iniziale: {callPremium.toFixed(2)}
                   </div>
-                  <div className={`text-lg font-semibold mt-2 ${callPnL >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                    P&L: {callPnL >= 0 ? '+' : ''}{callPnL.toFixed(2)} ({callPnL >= 0 ? '+' : ''}{callPnLPercent.toFixed(1)}%)
+                  <div className="mt-3 space-y-1">
+                    <div className={`text-sm font-semibold ${callPnLLong >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                      P&L Long: {callPnLLong >= 0 ? '+' : ''}{callPnLLong.toFixed(2)} ({callPnLLong >= 0 ? '+' : ''}{callPnLLongPercent.toFixed(1)}%)
+                    </div>
+                    <div className={`text-sm font-semibold ${callPnLShort >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                      P&L Short: {callPnLShort >= 0 ? '+' : ''}{callPnLShort.toFixed(2)} ({callPnLShort >= 0 ? '+' : ''}{callPnLShortPercent.toFixed(1)}%)
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -356,14 +370,19 @@ export default function Home() {
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="text-lg font-semibold text-white/90">Put Option</h3>
-                    <TrendIndicator value={putPnL} percent={putPnLPercent} />
+                    <TrendIndicator value={putPnLLong} percent={putPnLLongPercent} />
                   </div>
                   <div className="text-5xl font-bold text-white mb-1">{putResult.price.toFixed(2)}</div>
                   <div className="text-sm text-white/70">
                     Premio iniziale: {putPremium.toFixed(2)}
                   </div>
-                  <div className={`text-lg font-semibold mt-2 ${putPnL >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                    P&L: {putPnL >= 0 ? '+' : ''}{putPnL.toFixed(2)} ({putPnL >= 0 ? '+' : ''}{putPnLPercent.toFixed(1)}%)
+                  <div className="mt-3 space-y-1">
+                    <div className={`text-sm font-semibold ${putPnLLong >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                      P&L Long: {putPnLLong >= 0 ? '+' : ''}{putPnLLong.toFixed(2)} ({putPnLLong >= 0 ? '+' : ''}{putPnLLongPercent.toFixed(1)}%)
+                    </div>
+                    <div className={`text-sm font-semibold ${putPnLShort >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                      P&L Short: {putPnLShort >= 0 ? '+' : ''}{putPnLShort.toFixed(2)} ({putPnLShort >= 0 ? '+' : ''}{putPnLShortPercent.toFixed(1)}%)
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -417,19 +436,31 @@ export default function Home() {
                 <div>
                   <div className="flex justify-between mb-2">
                     <Label className="text-sm text-slate-300">Prezzo Sottostante</Label>
-                    <span className="text-sm font-semibold text-white">{currentSpotPrice.toFixed(2)}</span>
+                    <span className="text-sm font-semibold text-white">
+                      {currentSpotPrice.toFixed(2)} 
+                      <span className={`ml-2 ${priceChangePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        ({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(1)}%)
+                      </span>
+                    </span>
                   </div>
-                  <Slider
-                    value={[currentSpotPrice]}
-                    onValueChange={(val) => setCurrentSpotPrice(val[0])}
-                    min={priceSliderMin}
-                    max={priceSliderMax}
-                    step={0.01}
-                    className="w-full"
-                  />
+                  <div className="relative">
+                    <Slider
+                      value={[currentSpotPrice]}
+                      onValueChange={(val) => setCurrentSpotPrice(val[0])}
+                      min={priceSliderMin}
+                      max={priceSliderMax}
+                      step={0.01}
+                      className="w-full"
+                    />
+                    {/* Marcatore valore iniziale */}
+                    <div 
+                      className="absolute top-1/2 -translate-y-1/2 w-0.5 h-4 bg-yellow-400 pointer-events-none"
+                      style={{ left: `${(setupSpotPrice / priceSliderMax) * 100}%` }}
+                    />
+                  </div>
                   <div className="flex justify-between text-xs text-slate-500 mt-1">
                     <span>0</span>
-                    <span>{setupSpotPrice.toFixed(0)}</span>
+                    <span className="text-yellow-400">{setupSpotPrice.toFixed(0)}</span>
                     <span>{priceSliderMax.toFixed(0)}</span>
                   </div>
                 </div>
@@ -437,7 +468,12 @@ export default function Home() {
                 <div>
                   <div className="flex justify-between mb-2">
                     <Label className="text-sm text-slate-300">Tempo (DTE)</Label>
-                    <span className="text-sm font-semibold text-white">{currentDTE} giorni</span>
+                    <span className="text-sm font-semibold text-white">
+                      {currentDTE} giorni
+                      <span className="ml-2 text-slate-400">
+                        ({timeElapsedPercent.toFixed(0)}% trascorso)
+                      </span>
+                    </span>
                   </div>
                   <Slider
                     value={[currentDayIndex]}
@@ -461,17 +497,24 @@ export default function Home() {
                       {volatilityAdjustment.toFixed(0)}%
                     </span>
                   </div>
-                  <Slider
-                    value={[volatilityAdjustment]}
-                    onValueChange={(val) => setVolatilityAdjustment(val[0])}
-                    min={-100}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
+                  <div className="relative">
+                    <Slider
+                      value={[volatilityAdjustment]}
+                      onValueChange={(val) => setVolatilityAdjustment(val[0])}
+                      min={-100}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                    {/* Marcatore 0% */}
+                    <div 
+                      className="absolute top-1/2 -translate-y-1/2 w-0.5 h-4 bg-yellow-400 pointer-events-none"
+                      style={{ left: '50%' }}
+                    />
+                  </div>
                   <div className="flex justify-between text-xs text-slate-500 mt-1">
                     <span>-100%</span>
-                    <span>0%</span>
+                    <span className="text-yellow-400">0%</span>
                     <span>+100%</span>
                   </div>
                 </div>
