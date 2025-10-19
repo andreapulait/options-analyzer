@@ -204,6 +204,43 @@ export default function Home() {
     setVolatilityAdjustment(0);
   };
 
+  // Funzione per gestire modifiche manuali di Sottostante o Strike
+  // Ricalcola i premi iniziali e resetta gli slider come nuovo punto di partenza
+  const handleManualSetupChange = (newSpotPrice: number, newStrike: number) => {
+    // Aggiorna i valori di setup
+    setSetupSpotPrice(newSpotPrice);
+    setCurrentSpotPrice(newSpotPrice);
+    setStrike(newStrike);
+    
+    // Ricalcola i premi usando Black-Scholes con i nuovi valori
+    const timeToExpiry = tradeDuration / 365;
+    const callInputs: OptionInputs = {
+      S: newSpotPrice,
+      K: newStrike,
+      T: timeToExpiry,
+      r: riskFreeRate / 100,
+      sigma: callIVBase, // Usa la IV base corrente
+    };
+    const putInputs: OptionInputs = {
+      S: newSpotPrice,
+      K: newStrike,
+      T: timeToExpiry,
+      r: riskFreeRate / 100,
+      sigma: putIVBase, // Usa la IV base corrente
+    };
+    
+    const callResult = calculateCall(callInputs);
+    const putResult = calculatePut(putInputs);
+    
+    // Aggiorna i premi iniziali (NON arrotondare per evitare discrepanze)
+    setCallPremium(callResult.price);
+    setPutPremium(putResult.price);
+    
+    // Reset slider a valori iniziali
+    setCurrentDayIndex(0);
+    setVolatilityAdjustment(0);
+  };
+
   // Funzione fetch prezzo con sistema multi-API e reset automatico
   const handleFetchPrice = async () => {
     if (!ticker.trim()) {
@@ -435,9 +472,8 @@ export default function Home() {
                     value={setupSpotPrice}
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setSetupSpotPrice(val);
-                      setCurrentSpotPrice(val);
+                      const newSpotPrice = Number(e.target.value);
+                      handleManualSetupChange(newSpotPrice, strike);
                     }}
                     className="h-8 bg-slate-800 border-slate-700 text-white"
                   />
@@ -448,7 +484,10 @@ export default function Home() {
                     type="number"
                     value={strike}
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setStrike(Number(e.target.value))}
+                    onChange={(e) => {
+                      const newStrike = Number(e.target.value);
+                      handleManualSetupChange(setupSpotPrice, newStrike);
+                    }}
                     className="h-8 bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
