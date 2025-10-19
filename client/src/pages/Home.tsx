@@ -241,6 +241,43 @@ export default function Home() {
     setVolatilityAdjustment(0);
   };
 
+  // Funzione per gestire modifiche manuali delle IV Base
+  // Ricalcola i premi con le nuove IV e resetta gli slider
+  const handleManualIVChange = (newCallIV: number, newPutIV: number) => {
+    // Aggiorna le IV Base
+    setCallIVBase(newCallIV);
+    setPutIVBase(newPutIV);
+    
+    // Ricalcola i premi usando Black-Scholes con le nuove IV
+    const timeToExpiry = tradeDuration / 365;
+    const callInputs: OptionInputs = {
+      S: setupSpotPrice,
+      K: strike,
+      T: timeToExpiry,
+      r: riskFreeRate / 100,
+      sigma: newCallIV,
+    };
+    const putInputs: OptionInputs = {
+      S: setupSpotPrice,
+      K: strike,
+      T: timeToExpiry,
+      r: riskFreeRate / 100,
+      sigma: newPutIV,
+    };
+    
+    const callResult = calculateCall(callInputs);
+    const putResult = calculatePut(putInputs);
+    
+    // Aggiorna i premi iniziali
+    setCallPremium(callResult.price);
+    setPutPremium(putResult.price);
+    
+    // Reset slider a valori iniziali
+    setCurrentSpotPrice(setupSpotPrice);
+    setCurrentDayIndex(0);
+    setVolatilityAdjustment(0);
+  };
+
   // Funzione fetch prezzo con sistema multi-API e reset automatico
   const handleFetchPrice = async () => {
     if (!ticker.trim()) {
@@ -536,23 +573,35 @@ export default function Home() {
                   <Input
                     type="number"
                     value={callPremium.toFixed(2)}
-                    onFocus={(e) => {
-                      // Usa setTimeout per assicurare che la selezione avvenga dopo il focus
-                      setTimeout(() => {
-                        e.target.select();
-                      }, 0);
-                    }}
-                    onMouseDown={(e) => {
-                      // Se il campo non è già focalizzato, previeni il comportamento predefinito
-                      if (document.activeElement !== e.target) {
-                        e.preventDefault();
-                        (e.target as HTMLInputElement).focus();
-                      }
+                    onClick={(e) => {
+                      // Seleziona tutto il testo quando si clicca sul campo
+                      (e.target as HTMLInputElement).select();
                     }}
                     onChange={(e) => {
-                      setCallPremium(Number(e.target.value));
+                      const newPremium = Number(e.target.value);
+                      setCallPremium(newPremium);
+                      
+                      // Ricalcola IV implicita dal nuovo premio
+                      if (newPremium > 0 && tradeDuration > 0) {
+                        const timeToExpiry = tradeDuration / 365;
+                        const iv = calculateImpliedVolatility(
+                          newPremium,
+                          setupSpotPrice,
+                          strike,
+                          timeToExpiry,
+                          riskFreeRate / 100,
+                          true
+                        );
+                        if (iv && iv > 0 && iv < 2) {
+                          setCallIVBase(iv);
+                        }
+                      }
+                      
+                      // Reset slider quando si modifica manualmente il premio
+                      setCurrentSpotPrice(setupSpotPrice);
+                      setCurrentDayIndex(0);
+                      setVolatilityAdjustment(0);
                     }}
-                    onBlur={handleCallPremiumBlur}
                     className="h-8 bg-slate-800 border-slate-700 text-blue-300"
                   />
                   <div className="flex items-center gap-2 mt-1">
@@ -562,7 +611,10 @@ export default function Home() {
                       step="0.1"
                       value={(impliedVolCall * 100).toFixed(1)}
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setCallIVBase(Number(e.target.value) / 100)}
+                      onChange={(e) => {
+                        const newCallIV = Number(e.target.value) / 100;
+                        handleManualIVChange(newCallIV, putIVBase);
+                      }}
                       className="h-6 text-xs bg-slate-800 border-slate-700 text-blue-300 w-20"
                     />
                   </div>
@@ -572,23 +624,35 @@ export default function Home() {
                   <Input
                     type="number"
                     value={putPremium.toFixed(2)}
-                    onFocus={(e) => {
-                      // Usa setTimeout per assicurare che la selezione avvenga dopo il focus
-                      setTimeout(() => {
-                        e.target.select();
-                      }, 0);
-                    }}
-                    onMouseDown={(e) => {
-                      // Se il campo non è già focalizzato, previeni il comportamento predefinito
-                      if (document.activeElement !== e.target) {
-                        e.preventDefault();
-                        (e.target as HTMLInputElement).focus();
-                      }
+                    onClick={(e) => {
+                      // Seleziona tutto il testo quando si clicca sul campo
+                      (e.target as HTMLInputElement).select();
                     }}
                     onChange={(e) => {
-                      setPutPremium(Number(e.target.value));
+                      const newPremium = Number(e.target.value);
+                      setPutPremium(newPremium);
+                      
+                      // Ricalcola IV implicita dal nuovo premio
+                      if (newPremium > 0 && tradeDuration > 0) {
+                        const timeToExpiry = tradeDuration / 365;
+                        const iv = calculateImpliedVolatility(
+                          newPremium,
+                          setupSpotPrice,
+                          strike,
+                          timeToExpiry,
+                          riskFreeRate / 100,
+                          false
+                        );
+                        if (iv && iv > 0 && iv < 2) {
+                          setPutIVBase(iv);
+                        }
+                      }
+                      
+                      // Reset slider quando si modifica manualmente il premio
+                      setCurrentSpotPrice(setupSpotPrice);
+                      setCurrentDayIndex(0);
+                      setVolatilityAdjustment(0);
                     }}
-                    onBlur={handlePutPremiumBlur}
                     className="h-8 bg-slate-800 border-slate-700 text-orange-300"
                   />
                   <div className="flex items-center gap-2 mt-1">
@@ -598,7 +662,10 @@ export default function Home() {
                       step="0.1"
                       value={(impliedVolPut * 100).toFixed(1)}
                       onFocus={(e) => e.target.select()}
-                      onChange={(e) => setPutIVBase(Number(e.target.value) / 100)}
+                      onChange={(e) => {
+                        const newPutIV = Number(e.target.value) / 100;
+                        handleManualIVChange(callIVBase, newPutIV);
+                      }}
                       className="h-6 text-xs bg-slate-800 border-slate-700 text-orange-300 w-20"
                     />
                   </div>
