@@ -708,16 +708,16 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Call Option */}
               <Card className="bg-gradient-to-br from-blue-600 to-blue-700 border-0 shadow-lg">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex justify-between items-start mb-1">
+                <CardContent className="pt-2 pb-2">
+                  <div className="flex justify-between items-start mb-0.5">
                     <h3 className="text-base font-semibold text-white/90">Call Option</h3>
                     <TrendIndicator value={callPnLLong} percent={callPnLLongPercent} />
                   </div>
-                  <div className="text-4xl font-bold text-white mb-1">{displayCallPrice.toFixed(2)}</div>
-                  <div className="text-xs text-white/70">
+                  <div className="text-4xl font-bold text-white mb-0.5">{displayCallPrice.toFixed(2)}</div>
+                  <div className="text-xs text-white/70 mb-0.5">
                     Premio iniziale: {callPremium.toFixed(2)}
                   </div>
-                  <div className="mt-2 space-y-0.5">
+                  <div className="space-y-0.5">
                     <div className={`text-sm font-semibold ${callPnLLong >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                       P&L Long: {callPnLLong >= 0 ? '+' : ''}{callPnLLong.toFixed(2)} ({callPnLLong >= 0 ? '+' : ''}{callPnLLongPercent.toFixed(1)}%)
                     </div>
@@ -730,16 +730,16 @@ export default function Home() {
 
               {/* Put Option */}
               <Card className="bg-gradient-to-br from-orange-600 to-orange-700 border-0 shadow-lg">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex justify-between items-start mb-1">
+                <CardContent className="pt-2 pb-2">
+                  <div className="flex justify-between items-start mb-0.5">
                     <h3 className="text-base font-semibold text-white/90">Put Option</h3>
                     <TrendIndicator value={putPnLLong} percent={putPnLLongPercent} />
                   </div>
-                  <div className="text-4xl font-bold text-white mb-1">{displayPutPrice.toFixed(2)}</div>
-                  <div className="text-xs text-white/70">
+                  <div className="text-4xl font-bold text-white mb-0.5">{displayPutPrice.toFixed(2)}</div>
+                  <div className="text-xs text-white/70 mb-0.5">
                     Premio iniziale: {putPremium.toFixed(2)}
                   </div>
-                  <div className="mt-2 space-y-0.5">
+                  <div className="space-y-0.5">
                     <div className={`text-sm font-semibold ${putPnLLong >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                       P&L Long: {putPnLLong >= 0 ? '+' : ''}{putPnLLong.toFixed(2)} ({putPnLLong >= 0 ? '+' : ''}{putPnLLongPercent.toFixed(1)}%)
                     </div>
