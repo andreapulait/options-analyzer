@@ -5,7 +5,8 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { calculateCall, calculatePut, calculateImpliedVolatility, type OptionInputs } from '@/lib/blackScholes';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Minus, RotateCcw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, RotateCcw, RefreshCw, Settings } from 'lucide-react';
+import { fetchPrice, type ApiConfig } from '@/lib/priceApi';
 
 export default function Home() {
   // Valori iniziali del setup
@@ -19,7 +20,17 @@ export default function Home() {
   defaultExpiry.setDate(today.getDate() + 60);
 
   // Stati per i parametri di setup
+  const [ticker, setTicker] = useState('');
   const [setupSpotPrice, setSetupSpotPrice] = useState(initialSpotPrice);
+  const [lastFetchTime, setLastFetchTime] = useState<string | null>(null);
+  const [lastFetchSource, setLastFetchSource] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  
+  // API keys opzionali
+  const [showApiSettings, setShowApiSettings] = useState(false);
+  const [finnhubKey, setFinnhubKey] = useState('');
+  const [alphaVantageKey, setAlphaVantageKey] = useState('');
   const [strike, setStrike] = useState(initialStrike);
   const [tradeStartDate, setTradeStartDate] = useState(today.toISOString().split('T')[0]);
   const [expiryDate, setExpiryDate] = useState(defaultExpiry.toISOString().split('T')[0]);
@@ -187,6 +198,38 @@ export default function Home() {
     setVolatilityAdjustment(0);
   };
 
+  // Funzione fetch prezzo con sistema multi-API
+  const handleFetchPrice = async () => {
+    if (!ticker.trim()) {
+      setFetchError('Inserisci un ticker');
+      return;
+    }
+
+    setIsFetching(true);
+    setFetchError(null);
+
+    try {
+      const config: ApiConfig = {
+        finnhubKey: finnhubKey || undefined,
+        alphaVantageKey: alphaVantageKey || undefined,
+      };
+
+      const result = await fetchPrice(ticker, config);
+      
+      const newPrice = Number(result.price.toFixed(2));
+      setSetupSpotPrice(newPrice);
+      setCurrentSpotPrice(newPrice);
+      setLastFetchTime(result.timestamp.toLocaleTimeString('it-IT'));
+      setLastFetchSource(result.source);
+      setFetchError(null);
+    } catch (error) {
+      setFetchError(error instanceof Error ? error.message : 'Errore di connessione');
+      setLastFetchSource(null);
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
   // Componente per indicatore trend
   const TrendIndicator = ({ value, percent }: { value: number; percent: number }) => {
     if (Math.abs(value) < 0.01) {
@@ -270,6 +313,80 @@ export default function Home() {
                 <CardTitle className="text-sm text-slate-300">Parametri Contratto</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                <div>
+                  <Label className="text-xs text-slate-400">Ticker (opzionale)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="es. AAPL, TSLA"
+                      value={ticker}
+                      onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleFetchPrice();
+                        }
+                      }}
+                      className="h-8 bg-slate-800 border-slate-700 text-white flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleFetchPrice}
+                      disabled={isFetching}
+                      className="h-8 px-3 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                    >
+                      {isFetching ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {fetchError && (
+                    <p className="text-xs text-red-400 mt-1">{fetchError}</p>
+                  )}
+                  {lastFetchTime && !fetchError && (
+                    <p className="text-xs text-green-400 mt-1">
+                      Aggiornato: {lastFetchTime} ({lastFetchSource})
+                    </p>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowApiSettings(!showApiSettings)}
+                    className="h-6 px-2 text-xs text-slate-400 hover:text-white mt-1"
+                  >
+                    <Settings className="w-3 h-3 mr-1" />
+                    {showApiSettings ? 'Nascondi' : 'Configura'} API
+                  </Button>
+                  {showApiSettings && (
+                    <div className="mt-2 space-y-2 p-2 bg-slate-800 rounded border border-slate-700">
+                      <div>
+                        <Label className="text-xs text-slate-400">Finnhub API Key (opzionale)</Label>
+                        <Input
+                          type="text"
+                          placeholder="Gratuita su finnhub.io"
+                          value={finnhubKey}
+                          onChange={(e) => setFinnhubKey(e.target.value)}
+                          className="h-7 text-xs bg-slate-900 border-slate-600 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-slate-400">Alpha Vantage Key (opzionale)</Label>
+                        <Input
+                          type="text"
+                          placeholder="Gratuita su alphavantage.co"
+                          value={alphaVantageKey}
+                          onChange={(e) => setAlphaVantageKey(e.target.value)}
+                          className="h-7 text-xs bg-slate-900 border-slate-600 text-white"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Le API keys sono opzionali. Migliorano la copertura per indici internazionali (DAX, FTSE, etc.).
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div>
                   <Label className="text-xs text-slate-400">Sottostante</Label>
                   <Input
