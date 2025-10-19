@@ -119,7 +119,7 @@ export default function Home() {
   const timeToExpiry = currentDTE / 365;
 
   const priceSliderMin = 0;
-  const priceSliderMax = setupSpotPrice * 5;
+  const priceSliderMax = setupSpotPrice * 3; // 300% del prezzo iniziale
 
   // Input Black-Scholes
   const callInputs: OptionInputs = useMemo(
@@ -238,7 +238,7 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div>
-                  <Label className="text-xs text-slate-400">Sottostante (€)</Label>
+                  <Label className="text-xs text-slate-400">Sottostante</Label>
                   <Input
                     type="number"
                     value={setupSpotPrice}
@@ -251,7 +251,7 @@ export default function Home() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-400">Strike (€)</Label>
+                  <Label className="text-xs text-slate-400">Strike</Label>
                   <Input
                     type="number"
                     value={strike}
@@ -299,7 +299,7 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div>
-                  <Label className="text-xs text-blue-400">Call (€)</Label>
+                  <Label className="text-xs text-blue-400">Premio Call</Label>
                   <Input
                     type="number"
                     value={callPremium.toFixed(2)}
@@ -309,7 +309,7 @@ export default function Home() {
                   <p className="text-xs text-slate-500 mt-1">IV: {(impliedVolCall * 100).toFixed(1)}%</p>
                 </div>
                 <div>
-                  <Label className="text-xs text-orange-400">Put (€)</Label>
+                  <Label className="text-xs text-orange-400">Premio Put</Label>
                   <Input
                     type="number"
                     value={putPremium.toFixed(2)}
@@ -333,12 +333,12 @@ export default function Home() {
                     <h3 className="text-lg font-semibold text-white/90">Call Option</h3>
                     <TrendIndicator value={callPnL} percent={callPnLPercent} />
                   </div>
-                  <div className="text-5xl font-bold text-white mb-1">€{callResult.price.toFixed(2)}</div>
+                  <div className="text-5xl font-bold text-white mb-1">{callResult.price.toFixed(2)}</div>
                   <div className="text-sm text-white/70">
-                    Premio iniziale: €{callPremium.toFixed(2)}
+                    Premio iniziale: {callPremium.toFixed(2)}
                   </div>
                   <div className={`text-lg font-semibold mt-2 ${callPnL >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                    P&L: {callPnL >= 0 ? '+' : ''}€{callPnL.toFixed(2)}
+                    P&L: {callPnL >= 0 ? '+' : ''}{callPnL.toFixed(2)}
                   </div>
                 </CardContent>
               </Card>
@@ -350,12 +350,12 @@ export default function Home() {
                     <h3 className="text-lg font-semibold text-white/90">Put Option</h3>
                     <TrendIndicator value={putPnL} percent={putPnLPercent} />
                   </div>
-                  <div className="text-5xl font-bold text-white mb-1">€{putResult.price.toFixed(2)}</div>
+                  <div className="text-5xl font-bold text-white mb-1">{putResult.price.toFixed(2)}</div>
                   <div className="text-sm text-white/70">
-                    Premio iniziale: €{putPremium.toFixed(2)}
+                    Premio iniziale: {putPremium.toFixed(2)}
                   </div>
                   <div className={`text-lg font-semibold mt-2 ${putPnL >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                    P&L: {putPnL >= 0 ? '+' : ''}€{putPnL.toFixed(2)}
+                    P&L: {putPnL >= 0 ? '+' : ''}{putPnL.toFixed(2)}
                   </div>
                 </CardContent>
               </Card>
@@ -366,25 +366,25 @@ export default function Home() {
               <Card className="bg-slate-900 border-slate-800">
                 <CardContent className="pt-4 pb-3">
                   <div className="text-xs text-slate-400 mb-1">Intrinseco Call</div>
-                  <div className="text-2xl font-bold text-blue-400">€{callResult.intrinsicValue.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-blue-400">{callResult.intrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900 border-slate-800">
                 <CardContent className="pt-4 pb-3">
                   <div className="text-xs text-slate-400 mb-1">Estrinseco Call</div>
-                  <div className="text-2xl font-bold text-blue-400">€{callResult.extrinsicValue.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-blue-400">{callResult.extrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900 border-slate-800">
                 <CardContent className="pt-4 pb-3">
                   <div className="text-xs text-slate-400 mb-1">Intrinseco Put</div>
-                  <div className="text-2xl font-bold text-orange-400">€{putResult.intrinsicValue.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-orange-400">{putResult.intrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-slate-900 border-slate-800">
                 <CardContent className="pt-4 pb-3">
                   <div className="text-xs text-slate-400 mb-1">Estrinseco Put</div>
-                  <div className="text-2xl font-bold text-orange-400">€{putResult.extrinsicValue.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-orange-400">{putResult.extrinsicValue.toFixed(2)}</div>
                 </CardContent>
               </Card>
             </div>
@@ -398,7 +398,7 @@ export default function Home() {
                 <div>
                   <div className="flex justify-between mb-2">
                     <Label className="text-sm text-slate-300">Prezzo Sottostante</Label>
-                    <span className="text-sm font-semibold text-white">€{currentSpotPrice.toFixed(2)}</span>
+                    <span className="text-sm font-semibold text-white">{currentSpotPrice.toFixed(2)}</span>
                   </div>
                   <Slider
                     value={[currentSpotPrice]}
@@ -409,9 +409,9 @@ export default function Home() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-slate-500 mt-1">
-                    <span>€0</span>
-                    <span>€{setupSpotPrice.toFixed(0)}</span>
-                    <span>€{priceSliderMax.toFixed(0)}</span>
+                    <span>0</span>
+                    <span>{setupSpotPrice.toFixed(0)}</span>
+                    <span>{priceSliderMax.toFixed(0)}</span>
                   </div>
                 </div>
 
