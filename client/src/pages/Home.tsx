@@ -188,9 +188,17 @@ export default function Home() {
   const callResult = useMemo(() => calculateCall(callInputs), [callInputs]);
   const putResult = useMemo(() => calculatePut(putInputs), [putInputs]);
 
+  // Verifica se gli slider sono resettati (nessuna simulazione attiva)
+  const slidersReset = currentSpotPrice === setupSpotPrice && currentDayIndex === 0 && volatilityAdjustment === 0;
+  
+  // Quando slider resettati, mostra i premi iniziali invece di quelli calcolati
+  // Questo garantisce P&L = 0.00% dopo modifiche manuali
+  const displayCallPrice = slidersReset ? callPremium : callResult.price;
+  const displayPutPrice = slidersReset ? putPremium : putResult.price;
+
   // P&L Long (Compratore) e Short (Venditore)
-  const callPnLLong = callResult.price - callPremium;
-  const putPnLLong = putResult.price - putPremium;
+  const callPnLLong = displayCallPrice - callPremium;
+  const putPnLLong = displayPutPrice - putPremium;
   const callPnLShort = -callPnLLong; // Opposto del long
   const putPnLShort = -putPnLLong;
   
@@ -705,7 +713,7 @@ export default function Home() {
                     <h3 className="text-lg font-semibold text-white/90">Call Option</h3>
                     <TrendIndicator value={callPnLLong} percent={callPnLLongPercent} />
                   </div>
-                  <div className="text-5xl font-bold text-white mb-1">{callResult.price.toFixed(2)}</div>
+                  <div className="text-5xl font-bold text-white mb-1">{displayCallPrice.toFixed(2)}</div>
                   <div className="text-sm text-white/70">
                     Premio iniziale: {callPremium.toFixed(2)}
                   </div>
@@ -727,7 +735,7 @@ export default function Home() {
                     <h3 className="text-lg font-semibold text-white/90">Put Option</h3>
                     <TrendIndicator value={putPnLLong} percent={putPnLLongPercent} />
                   </div>
-                  <div className="text-5xl font-bold text-white mb-1">{putResult.price.toFixed(2)}</div>
+                  <div className="text-5xl font-bold text-white mb-1">{displayPutPrice.toFixed(2)}</div>
                   <div className="text-sm text-white/70">
                     Premio iniziale: {putPremium.toFixed(2)}
                   </div>
