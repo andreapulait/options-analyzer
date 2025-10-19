@@ -11,21 +11,45 @@ export default function Home() {
   // Valori iniziali del setup
   const initialSpotPrice = 100;
   const initialStrike = 100;
-  const initialDTE = 60; // Giorni alla scadenza
   const initialRiskFreeRate = 0.03; // 3%
+
+  // Date
+  const today = new Date();
+  const defaultExpiry = new Date(today);
+  defaultExpiry.setDate(today.getDate() + 60); // 60 giorni da oggi
 
   // Stati per i parametri di setup (fissi, definiscono il contratto)
   const [setupSpotPrice, setSetupSpotPrice] = useState(initialSpotPrice);
   const [strike, setStrike] = useState(initialStrike);
-  const [maxDTE, setMaxDTE] = useState(initialDTE);
+  const [tradeStartDate, setTradeStartDate] = useState(today.toISOString().split('T')[0]);
+  const [expiryDate, setExpiryDate] = useState(defaultExpiry.toISOString().split('T')[0]);
   const [riskFreeRate, setRiskFreeRate] = useState(initialRiskFreeRate);
   const [callPremium, setCallPremium] = useState<number>(0);
   const [putPremium, setPutPremium] = useState<number>(0);
 
   // Stati per gli slider (variabili dinamiche)
   const [currentSpotPrice, setCurrentSpotPrice] = useState(initialSpotPrice);
-  const [currentDTE, setCurrentDTE] = useState(initialDTE);
+  const [currentDayIndex, setCurrentDayIndex] = useState(0); // 0 = inizio trade, max = scadenza
   const [volatilityAdjustment, setVolatilityAdjustment] = useState(0); // Percentuale di aggiustamento
+
+  // Calcolo della durata del trade in giorni
+  const tradeDuration = useMemo(() => {
+    const start = new Date(tradeStartDate);
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(diffDays, 1); // Minimo 1 giorno
+  }, [tradeStartDate, expiryDate]);
+
+  // Calcolo dei DTE rimanenti
+  const currentDTE = useMemo(() => {
+    return Math.max(tradeDuration - currentDayIndex, 0);
+  }, [tradeDuration, currentDayIndex]);
+
+  // Reset dello slider quando cambia la durata
+  useEffect(() => {
+    setCurrentDayIndex(0);
+  }, [tradeDuration]);
 
   // Calcolo della volatilità implicita iniziale dai premi
   const [impliedVolCall, setImpliedVolCall] = useState(0.25);
@@ -33,7 +57,7 @@ export default function Home() {
 
   // Calcolo iniziale dei premi teorici con volatilità base
   useEffect(() => {
-    const timeToExpiry = maxDTE / 365;
+    const timeToExpiry = tradeDuration / 365;
     const baseInputs: OptionInputs = {
       S: setupSpotPrice,
       K: strike,
@@ -55,8 +79,8 @@ export default function Home() {
 
   // Ricalcolo della volatilità implicita quando cambiano i premi o i parametri di setup
   useEffect(() => {
-    if (callPremium > 0 && maxDTE > 0) {
-      const timeToExpiry = maxDTE / 365;
+    if (callPremium > 0 && tradeDuration > 0) {
+      const timeToExpiry = tradeDuration / 365;
       const iv = calculateImpliedVolatility(
         callPremium,
         setupSpotPrice,
@@ -67,11 +91,11 @@ export default function Home() {
       );
       setImpliedVolCall(iv);
     }
-  }, [callPremium, setupSpotPrice, strike, maxDTE, riskFreeRate]);
+  }, [callPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
 
   useEffect(() => {
-    if (putPremium > 0 && maxDTE > 0) {
-      const timeToExpiry = maxDTE / 365;
+    if (putPremium > 0 && tradeDuration > 0) {
+      const timeToExpiry = tradeDuration / 365;
       const iv = calculateImpliedVolatility(
         putPremium,
         setupSpotPrice,
@@ -82,7 +106,7 @@ export default function Home() {
       );
       setImpliedVolPut(iv);
     }
-  }, [putPremium, setupSpotPrice, strike, maxDTE, riskFreeRate]);
+  }, [putPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
 
   // Calcolo della volatilità effettiva con aggiustamento
   const effectiveVolCall = useMemo(() => {
@@ -97,6 +121,10 @@ export default function Home() {
 
   // Calcolo del tempo alla scadenza in anni
   const timeToExpiry = currentDTE / 365;
+
+  // Range dinamico dello slider del prezzo
+  const priceSliderMin = 0;
+  const priceSliderMax = setupSpotPrice * 5; // 500% del prezzo iniziale
 
   // Input per Black-Scholes con parametri correnti
   const callInputs: OptionInputs = useMemo(
@@ -144,16 +172,16 @@ export default function Home() {
       {/* Main Content */}
       <main className="container py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar sinistra - Controlli */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Sidebar sinistra - Controlli compatti */}
+          <div className="lg:col-span-1 space-y-4">
             {/* Parametri di Setup */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Setup Iniziale</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Setup Contratto</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="setupSpot">Prezzo Sottostante Iniziale (€)</Label>
+              <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="setupSpot" className="text-xs">Prezzo Sottostante (€)</Label>
                   <Input
                     id="setupSpot"
                     type="number"
@@ -165,12 +193,12 @@ export default function Home() {
                     }}
                     step={1}
                     min={1}
-                    className="font-mono"
+                    className="font-mono h-8 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="strike">Strike Price (€)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="strike" className="text-xs">Strike Price (€)</Label>
                   <Input
                     id="strike"
                     type="number"
@@ -178,30 +206,39 @@ export default function Home() {
                     onChange={(e) => setStrike(Number(e.target.value))}
                     step={1}
                     min={1}
-                    className="font-mono"
+                    className="font-mono h-8 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="maxDTE">Giorni alla Scadenza (DTE)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="tradeStart" className="text-xs">Data Inizio Trade</Label>
                   <Input
-                    id="maxDTE"
-                    type="number"
-                    value={maxDTE}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setMaxDTE(val);
-                      setCurrentDTE(val);
-                    }}
-                    step={7}
-                    min={1}
-                    max={365}
-                    className="font-mono"
+                    id="tradeStart"
+                    type="date"
+                    value={tradeStartDate}
+                    onChange={(e) => setTradeStartDate(e.target.value)}
+                    className="h-8 text-sm"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="riskFreeRate">Tasso Risk-Free (%)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="expiry" className="text-xs">Data Scadenza</Label>
+                  <Input
+                    id="expiry"
+                    type="date"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-border">
+                  <div className="text-xs text-foreground/60">Durata Trade</div>
+                  <div className="text-sm font-semibold text-foreground">{tradeDuration} giorni</div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="riskFreeRate" className="text-xs">Tasso Risk-Free (%)</Label>
                   <Input
                     id="riskFreeRate"
                     type="number"
@@ -210,7 +247,7 @@ export default function Home() {
                     step={0.1}
                     min={0}
                     max={20}
-                    className="font-mono"
+                    className="font-mono h-8 text-sm"
                   />
                 </div>
               </CardContent>
@@ -218,12 +255,12 @@ export default function Home() {
 
             {/* Premi delle Opzioni */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-base">Premi di Mercato</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="callPremium" className="text-green-600 dark:text-green-400">
+              <CardContent className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="callPremium" className="text-xs text-green-600 dark:text-green-400">
                     Premio Call (€)
                   </Label>
                   <Input
@@ -233,15 +270,15 @@ export default function Home() {
                     onChange={(e) => setCallPremium(Number(e.target.value))}
                     step={0.1}
                     min={0}
-                    className="font-mono"
+                    className="font-mono h-8 text-sm"
                   />
                   <p className="text-xs text-foreground/60">
                     IV: {(impliedVolCall * 100).toFixed(1)}%
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="putPremium" className="text-red-600 dark:text-red-400">
+                <div className="space-y-1.5">
+                  <Label htmlFor="putPremium" className="text-xs text-red-600 dark:text-red-400">
                     Premio Put (€)
                   </Label>
                   <Input
@@ -251,7 +288,7 @@ export default function Home() {
                     onChange={(e) => setPutPremium(Number(e.target.value))}
                     step={0.1}
                     min={0}
-                    className="font-mono"
+                    className="font-mono h-8 text-sm"
                   />
                   <p className="text-xs text-foreground/60">
                     IV: {(impliedVolPut * 100).toFixed(1)}%
@@ -259,84 +296,11 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Slider Dinamici */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Simulazione</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Slider Prezzo */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Prezzo Corrente</Label>
-                    <span className="font-mono text-sm font-semibold">€{currentSpotPrice.toFixed(2)}</span>
-                  </div>
-                  <Slider
-                    value={[currentSpotPrice]}
-                    onValueChange={(val) => setCurrentSpotPrice(val[0])}
-                    min={0}
-                    max={setupSpotPrice * 5}
-                    step={0.5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-foreground/60">
-                    <span>€0</span>
-                    <span>€{setupSpotPrice.toFixed(0)}</span>
-                    <span>€{(setupSpotPrice * 5).toFixed(0)}</span>
-                  </div>
-                </div>
-
-                {/* Slider DTE */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">DTE Rimanenti</Label>
-                    <span className="font-mono text-sm font-semibold">{currentDTE} giorni</span>
-                  </div>
-                  <Slider
-                    value={[currentDTE]}
-                    onValueChange={(val) => setCurrentDTE(val[0])}
-                    min={0}
-                    max={maxDTE}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-foreground/60">
-                    <span>Scadenza (0)</span>
-                    <span>Oggi ({maxDTE})</span>
-                  </div>
-                </div>
-
-                {/* Slider Volatilità */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Aggiustamento Vol</Label>
-                    <span className="font-mono text-sm font-semibold">
-                      {volatilityAdjustment > 0 ? '+' : ''}
-                      {volatilityAdjustment.toFixed(0)}%
-                    </span>
-                  </div>
-                  <Slider
-                    value={[volatilityAdjustment]}
-                    onValueChange={(val) => setVolatilityAdjustment(val[0])}
-                    min={-100}
-                    max={100}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-foreground/60">
-                    <span>-100%</span>
-                    <span>0%</span>
-                    <span>+100%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Area destra - Visualizzazioni */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Barre di visualizzazione - 2/3 */}
+            {/* Barre di visualizzazione */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {/* Call Option */}
               <Card>
@@ -439,7 +403,80 @@ export default function Home() {
               </Card>
             </div>
 
-            {/* Pannello Greche - 1/3 */}
+            {/* Slider Dinamici - Sezione centrale */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Controlli di Simulazione</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Slider Prezzo */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Prezzo Corrente</Label>
+                    <span className="font-mono text-sm font-semibold">€{currentSpotPrice.toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={[currentSpotPrice]}
+                    onValueChange={(val) => setCurrentSpotPrice(val[0])}
+                    min={priceSliderMin}
+                    max={priceSliderMax}
+                    step={0.5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-foreground/60">
+                    <span>€0</span>
+                    <span className="font-semibold">€{setupSpotPrice.toFixed(0)}</span>
+                    <span>€{priceSliderMax.toFixed(0)}</span>
+                  </div>
+                </div>
+
+                {/* Slider Tempo */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Simulazione Tempo</Label>
+                    <span className="font-mono text-sm font-semibold">{currentDTE} DTE</span>
+                  </div>
+                  <Slider
+                    value={[currentDayIndex]}
+                    onValueChange={(val) => setCurrentDayIndex(val[0])}
+                    min={0}
+                    max={tradeDuration}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-foreground/60">
+                    <span>Inizio ({tradeDuration} DTE)</span>
+                    <span>Scadenza (0 DTE)</span>
+                  </div>
+                </div>
+
+                {/* Slider Volatilità */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Aggiustamento Volatilità</Label>
+                    <span className="font-mono text-sm font-semibold">
+                      {volatilityAdjustment > 0 ? '+' : ''}
+                      {volatilityAdjustment.toFixed(0)}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[volatilityAdjustment]}
+                    onValueChange={(val) => setVolatilityAdjustment(val[0])}
+                    min={-100}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-foreground/60">
+                    <span>-100%</span>
+                    <span>0%</span>
+                    <span>+100%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pannello Greche */}
             <GreeksPanel callResult={callResult} putResult={putResult} />
           </div>
         </div>
