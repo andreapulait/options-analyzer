@@ -338,7 +338,7 @@ export default function Home() {
                     Premio iniziale: {callPremium.toFixed(2)}
                   </div>
                   <div className={`text-lg font-semibold mt-2 ${callPnL >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                    P&L: {callPnL >= 0 ? '+' : ''}{callPnL.toFixed(2)}
+                    P&L: {callPnL >= 0 ? '+' : ''}{callPnL.toFixed(2)} ({callPnL >= 0 ? '+' : ''}{callPnLPercent.toFixed(1)}%)
                   </div>
                 </CardContent>
               </Card>
@@ -355,7 +355,7 @@ export default function Home() {
                     Premio iniziale: {putPremium.toFixed(2)}
                   </div>
                   <div className={`text-lg font-semibold mt-2 ${putPnL >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                    P&L: {putPnL >= 0 ? '+' : ''}{putPnL.toFixed(2)}
+                    P&L: {putPnL >= 0 ? '+' : ''}{putPnL.toFixed(2)} ({putPnL >= 0 ? '+' : ''}{putPnLPercent.toFixed(1)}%)
                   </div>
                 </CardContent>
               </Card>
