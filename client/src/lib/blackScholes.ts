@@ -130,6 +130,70 @@ export function calculateCall(inputs: OptionInputs): OptionResult {
 /**
  * Calcola il prezzo e le Greche per una Put Option
  */
+/**
+ * Calcola la volatilità implicita dato il prezzo di mercato dell'opzione
+ * Utilizza il metodo di Newton-Raphson
+ */
+export function calculateImpliedVolatility(
+  marketPrice: number,
+  S: number,
+  K: number,
+  T: number,
+  r: number,
+  isCall: boolean,
+  maxIterations: number = 100,
+  tolerance: number = 0.0001
+): number {
+  // Caso particolare: scadenza raggiunta
+  if (T <= 0) {
+    return 0;
+  }
+
+  // Valore intrinseco
+  const intrinsic = isCall ? Math.max(S - K, 0) : Math.max(K - S, 0);
+  
+  // Se il prezzo di mercato è minore o uguale al valore intrinseco, volatilità molto bassa
+  if (marketPrice <= intrinsic) {
+    return 0.01; // 1% minimo
+  }
+
+  // Stima iniziale della volatilità (approssimazione di Brenner-Subrahmanyam)
+  let sigma = Math.sqrt(2 * Math.PI / T) * (marketPrice / S);
+  sigma = Math.max(sigma, 0.01); // Minimo 1%
+  sigma = Math.min(sigma, 5.0); // Massimo 500%
+
+  // Newton-Raphson
+  for (let i = 0; i < maxIterations; i++) {
+    const inputs: OptionInputs = { S, K, T, r, sigma };
+    const result = isCall ? calculateCall(inputs) : calculatePut(inputs);
+    
+    const price = result.price;
+    const vega = result.vega * 100; // Vega è per 1%, lo convertiamo per variazione unitaria
+    
+    // Differenza tra prezzo teorico e prezzo di mercato
+    const diff = price - marketPrice;
+    
+    // Convergenza raggiunta
+    if (Math.abs(diff) < tolerance) {
+      return sigma;
+    }
+    
+    // Evitare divisione per zero
+    if (Math.abs(vega) < 1e-10) {
+      break;
+    }
+    
+    // Aggiornamento Newton-Raphson: sigma_new = sigma_old - f(sigma)/f'(sigma)
+    sigma = sigma - diff / vega;
+    
+    // Mantenere sigma in un range ragionevole
+    sigma = Math.max(sigma, 0.01);
+    sigma = Math.min(sigma, 5.0);
+  }
+
+  return sigma;
+}
+
 export function calculatePut(inputs: OptionInputs): OptionResult {
   const { S, K, T, r, sigma } = inputs;
 

@@ -17,7 +17,7 @@ export default function ValueBar({ label, value, maxValue, color, showValue = tr
         <span className="font-medium text-foreground/80">{label}</span>
         {showValue && <span className="font-mono text-foreground/60">{value.toFixed(2)}</span>}
       </div>
-      <div className="relative h-8 bg-muted rounded-md overflow-hidden border border-border">
+      <div className="relative h-10 bg-muted rounded-md overflow-hidden border border-border">
         <div
           className="absolute inset-y-0 left-0 transition-all duration-300 ease-out"
           style={{
@@ -25,8 +25,9 @@ export default function ValueBar({ label, value, maxValue, color, showValue = tr
             backgroundColor: color,
           }}
         />
-        <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground/70">
-          {percentage.toFixed(1)}%
+        <div className="absolute inset-0 flex items-center justify-between px-3 text-xs font-semibold">
+          <span className="text-foreground/90">€{value.toFixed(2)}</span>
+          <span className="text-foreground/60">{percentage.toFixed(1)}%</span>
         </div>
       </div>
     </div>
