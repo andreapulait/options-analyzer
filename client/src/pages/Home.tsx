@@ -229,9 +229,9 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Sidebar Setup - Compatta */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm text-slate-300">Parametri Contratto</CardTitle>
@@ -323,7 +323,7 @@ export default function Home() {
           </div>
 
           {/* Area principale */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-7 space-y-4">
             {/* Card grandi Call e Put */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Call Option */}
@@ -459,30 +459,31 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Greche */}
-            <Card className="bg-slate-900 border-slate-800">
+          </div>
+
+          {/* Pannello Greche - Colonna destra */}
+          <div className="lg:col-span-3">
+            <Card className="bg-slate-900 border-slate-800 sticky top-20">
               <CardHeader>
                 <CardTitle className="text-base text-slate-300">Greche</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {greeks.map((greek) => (
-                    <div key={greek.name} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-semibold text-slate-400">{greek.symbol}</span>
-                          <span className="text-sm font-medium text-slate-300">{greek.name}</span>
-                        </div>
-                        <div className="text-xs text-slate-500">{greek.description}</div>
+                    <div key={greek.name} className="pb-3 border-b border-slate-800 last:border-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xl font-semibold text-slate-400">{greek.symbol}</span>
+                        <span className="text-sm font-medium text-slate-300">{greek.name}</span>
                       </div>
-                      <div className="flex gap-6">
-                        <div className="text-right">
-                          <div className="text-xs text-blue-400 mb-1">Call</div>
-                          <div className="text-sm font-semibold text-white">{greek.callValue.toFixed(4)}</div>
+                      <div className="text-xs text-slate-500 mb-3">{greek.description}</div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-blue-400">Call</span>
+                          <span className="text-sm font-semibold text-white">{greek.callValue.toFixed(4)}</span>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs text-orange-400 mb-1">Put</div>
-                          <div className="text-sm font-semibold text-white">{greek.putValue.toFixed(4)}</div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-orange-400">Put</span>
+                          <span className="text-sm font-semibold text-white">{greek.putValue.toFixed(4)}</span>
                         </div>
                       </div>
                     </div>
