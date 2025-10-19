@@ -47,7 +47,7 @@ export default function Home() {
       r: initialRiskFreeRate / 100, // Converti da % a decimale
       sigma: initialIV,
     };
-    return Number(calculateCall(inputs).price.toFixed(2));
+    return calculateCall(inputs).price; // NON arrotondare per evitare discrepanze
   });
   
   const [putPremium, setPutPremium] = useState<number>(() => {
@@ -59,7 +59,7 @@ export default function Home() {
       r: initialRiskFreeRate / 100, // Converti da % a decimale
       sigma: initialIV,
     };
-    return Number(calculatePut(inputs).price.toFixed(2));
+    return calculatePut(inputs).price; // NON arrotondare per evitare discrepanze
   });
 
   // Stati per gli slider
@@ -96,38 +96,9 @@ export default function Home() {
   const impliedVolCall = callIVBase;
   const impliedVolPut = putIVBase;
 
-  // Ricalcolo IV
-  useEffect(() => {
-    if (callPremium > 0 && tradeDuration > 0) {
-      const timeToExpiry = tradeDuration / 365;
-      const iv = calculateImpliedVolatility(
-        callPremium,
-        setupSpotPrice,
-        strike,
-        timeToExpiry,
-        riskFreeRate / 100, // Converti da % a decimale
-        true
-      );
-      setImpliedVolCallCalculated(iv);
-      // IV Base rimane quella impostata dall'utente o dal fetch ticker
-    }
-  }, [callPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
-
-  useEffect(() => {
-    if (putPremium > 0 && tradeDuration > 0) {
-      const timeToExpiry = tradeDuration / 365;
-      const iv = calculateImpliedVolatility(
-        putPremium,
-        setupSpotPrice,
-        strike,
-        timeToExpiry,
-        riskFreeRate / 100, // Converti da % a decimale
-        false
-      );
-      setImpliedVolPutCalculated(iv);
-      // IV Base rimane quella impostata dall'utente o dal fetch ticker
-    }
-  }, [putPremium, setupSpotPrice, strike, tradeDuration, riskFreeRate]);
+  // IV calcolata rimossa - ora l'IV Base è controllata solo manualmente dall'utente
+  // I premi inseriti manualmente rimangono fissi come "premio iniziale"
+  // Il sistema calcola solo il "valore corrente" con gli slider
 
   // Volatilità effettiva
   const effectiveVolCall = useMemo(() => {
@@ -242,9 +213,9 @@ export default function Home() {
       const callResult = calculateCall(callInputs);
       const putResult = calculatePut(putInputs);
       
-      // Imposta i premi calcolati (coerenti con la IV)
-      setCallPremium(Number(callResult.price.toFixed(2)));
-      setPutPremium(Number(putResult.price.toFixed(2)));
+      // Imposta i premi calcolati (coerenti con la IV) - NON arrotondare
+      setCallPremium(callResult.price);
+      setPutPremium(putResult.price);
       
       // Reset slider a valori iniziali
       setCurrentDayIndex(0);
@@ -468,9 +439,9 @@ export default function Home() {
                   <Label className="text-xs text-slate-400">Risk-Free (%)</Label>
                   <Input
                     type="number"
-                    value={(riskFreeRate * 100).toFixed(2)}
+                    value={riskFreeRate.toFixed(2)}
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setRiskFreeRate(Number(e.target.value) / 100)}
+                    onChange={(e) => setRiskFreeRate(Number(e.target.value))}
                     className="h-8 bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
