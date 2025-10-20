@@ -425,10 +425,17 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container py-4">
-          <h1 className="text-2xl font-bold">Options Analyzer</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Dashboard interattiva con modello Black-Scholes
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold">Options Analyzer</h1>
+              <p className="text-sm text-slate-400 mt-1">
+                Dashboard interattiva con modello Black-Scholes
+              </p>
+            </div>
+            <Button onClick={() => window.location.href = '/strategy'} variant="outline">
+              🚀 Strategy Builder
+            </Button>
+          </div>
         </div>
       </header>
 

@@ -4,7 +4,9 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { StrategyProvider } from "./contexts/StrategyContext";
 import Home from "./pages/Home";
+import StrategyBuilder from "./pages/StrategyBuilder";
 
 function Router() {
   return (
@@ -13,6 +15,7 @@ function Router() {
         {/* Key forces remount when logic changes - increment to reset state */}
         <Home key="v2" />
       </Route>
+      <Route path={"/strategy"} component={StrategyBuilder} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -32,10 +35,12 @@ function App() {
         defaultTheme="dark"
         // switchable
       >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <StrategyProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </StrategyProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
