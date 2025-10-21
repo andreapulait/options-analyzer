@@ -29,8 +29,9 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
     for (let price = minPrice; price <= maxPrice; price += step) {
       const point: any = { price: price };
 
-      // Calcola P&L per ogni leg
+      // Calcola P&L per ogni leg (corrente e a scadenza)
       let totalPnL = 0;
+      let totalPnLAtExpiry = 0;
       legs.forEach((leg, index) => {
         // Calcola giorni alla scadenza dalla data di expiration
         const expirationDate = new Date(leg.expiration);
@@ -64,11 +65,24 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
           ? (optionPrice - leg.premium) * leg.quantity
           : (leg.premium - optionPrice) * leg.quantity;
 
+        // Calcola P&L a scadenza (solo valore intrinseco)
+        let intrinsicValue = 0;
+        if (leg.type === 'call') {
+          intrinsicValue = Math.max(0, price - leg.strike);
+        } else {
+          intrinsicValue = Math.max(0, leg.strike - price);
+        }
+        const legPnLAtExpiry = leg.position === 'long'
+          ? (intrinsicValue - leg.premium) * leg.quantity
+          : (leg.premium - intrinsicValue) * leg.quantity;
+
         point[`leg${index}`] = legPnL;
         totalPnL += legPnL;
+        totalPnLAtExpiry += legPnLAtExpiry;
       });
 
       point.total = totalPnL;
+      point.totalAtExpiry = totalPnLAtExpiry;
       data.push(point);
     }
 
@@ -197,17 +211,28 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
                 stroke={colors[index % colors.length]}
                 strokeWidth={1}
                 dot={false}
-                strokeOpacity={0.5}
+                strokeOpacity={0.3}
               />
             ))}
 
-            {/* Linea totale */}
+            {/* Linea totale corrente */}
             <Line
               type="monotone"
               dataKey="total"
-              name="Totale Strategia"
+              name="Payoff Corrente"
               stroke="#10b981"
               strokeWidth={3}
+              dot={false}
+            />
+
+            {/* Linea totale a scadenza */}
+            <Line
+              type="monotone"
+              dataKey="totalAtExpiry"
+              name="Payoff a Scadenza"
+              stroke="#94a3b8"
+              strokeWidth={2}
+              strokeDasharray="5 5"
               dot={false}
             />
           </LineChart>

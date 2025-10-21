@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Badge } from '../components/ui/badge';
-import { Separator } from '../components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import { Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { useStrategy } from '../contexts/StrategyContext';
 import { PRESET_STRATEGIES } from '../lib/presetStrategies';
@@ -192,36 +192,79 @@ export default function StrategyBuilder() {
                 <CardTitle className="text-lg">Controlli Simulazione</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-4">
+                  {/* Slider Prezzo Sottostante */}
                   <div>
-                    <Label className="text-sm">Prezzo Sottostante</Label>
-                    <Input
-                      type="number"
-                      value={currentPrice}
-                      onChange={(e) => setCurrentPrice(Number(e.target.value))}
-                      className="bg-slate-800"
-                      step="0.01"
+                    <div className="flex justify-between items-center mb-2">
+                      <Label className="text-sm font-medium">Prezzo Sottostante</Label>
+                      <span className="text-lg font-bold text-red-400">
+                        {currentPrice.toFixed(2)}
+                        <span className="text-sm ml-2">
+                          ({((currentPrice - strategy.underlyingPrice) / strategy.underlyingPrice * 100).toFixed(1)}%)
+                        </span>
+                      </span>
+                    </div>
+                    <Slider
+                      value={[currentPrice]}
+                      onValueChange={(value) => setCurrentPrice(value[0])}
+                      min={strategy.underlyingPrice * 0.5}
+                      max={strategy.underlyingPrice * 1.5}
+                      step={0.01}
+                      className="py-4"
                     />
+                    <div className="flex justify-between text-xs text-slate-500 mt-1">
+                      <span>{(strategy.underlyingPrice * 0.5).toFixed(0)}</span>
+                      <span>{strategy.underlyingPrice.toFixed(0)}</span>
+                      <span>{(strategy.underlyingPrice * 1.5).toFixed(0)}</span>
+                    </div>
                   </div>
+
+                  {/* Slider Tempo */}
                   <div>
-                    <Label className="text-sm">Giorni Trascorsi</Label>
-                    <Input
-                      type="number"
-                      value={daysElapsed}
-                      onChange={(e) => setDaysElapsed(Number(e.target.value))}
-                      className="bg-slate-800"
-                      min="0"
+                    <div className="flex justify-between items-center mb-2">
+                      <Label className="text-sm font-medium">Tempo (DTE)</Label>
+                      <span className="text-lg font-bold text-green-400">
+                        {Math.max(0, 60 - daysElapsed)} giorni
+                        <span className="text-sm ml-2">
+                          ({((daysElapsed / 60) * 100).toFixed(0)}% trascorso)
+                        </span>
+                      </span>
+                    </div>
+                    <Slider
+                      value={[daysElapsed]}
+                      onValueChange={(value) => setDaysElapsed(value[0])}
+                      min={0}
+                      max={60}
+                      step={1}
+                      className="py-4"
                     />
+                    <div className="flex justify-between text-xs text-slate-500 mt-1">
+                      <span>Inizio (60 DTE)</span>
+                      <span>Scadenza (0 DTE)</span>
+                    </div>
                   </div>
+
+                  {/* Slider Volatilità */}
                   <div>
-                    <Label className="text-sm">Variazione Vol (%)</Label>
-                    <Input
-                      type="number"
-                      value={(volChange * 100).toFixed(1)}
-                      onChange={(e) => setVolChange(Number(e.target.value) / 100)}
-                      className="bg-slate-800"
-                      step="0.1"
+                    <div className="flex justify-between items-center mb-2">
+                      <Label className="text-sm font-medium">Volatilità</Label>
+                      <span className="text-lg font-bold text-blue-400">
+                        {(volChange * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[volChange * 100]}
+                      onValueChange={(value) => setVolChange(value[0] / 100)}
+                      min={-50}
+                      max={50}
+                      step={1}
+                      className="py-4"
                     />
+                    <div className="flex justify-between text-xs text-slate-500 mt-1">
+                      <span>-50%</span>
+                      <span>0%</span>
+                      <span>+50%</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
