@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { nanoid } from 'nanoid';
-import { Strategy, OptionLeg, StrategyPnL } from '../types/strategy';
+import { Strategy, OptionLeg, StrategyPnL, StrategyGreeks } from '../types/strategy';
 import { calculateCall, calculatePut } from '../lib/blackScholes';
 
 interface StrategyContextType {
@@ -10,6 +10,7 @@ interface StrategyContextType {
   removeLeg: (legId: string) => void;
   updateLeg: (legId: string, updates: Partial<OptionLeg>) => void;
   calculateStrategyPnL: (currentPrice: number, daysElapsed: number, volChange: number) => StrategyPnL;
+  calculateStrategyGreeks: (currentPrice: number, daysElapsed: number, volChange: number) => StrategyGreeks;
   resetStrategy: () => void;
 }
 
@@ -105,6 +106,35 @@ export function StrategyProvider({ children }: { children: React.ReactNode }) {
     };
   }, [strategy]);
 
+  const calculateStrategyGreeks = useCallback((currentPrice: number, daysElapsed: number, volChange: number): StrategyGreeks => {
+    let totalDelta = 0;
+    let totalGamma = 0;
+    let totalTheta = 0;
+    let totalVega = 0;
+    let totalRho = 0;
+
+    strategy.legs.forEach(leg => {
+      const timeToExpiry = Math.max(0, 
+        (new Date(leg.expiration).getTime() - Date.now()) / (1000 * 60 * 60 * 24) - daysElapsed
+      ) / 365;
+      const adjustedVol = leg.iv + volChange;
+      
+      const result = leg.type === 'call'
+        ? calculateCall({ S: currentPrice, K: leg.strike, T: timeToExpiry, r: 0.03, sigma: adjustedVol })
+        : calculatePut({ S: currentPrice, K: leg.strike, T: timeToExpiry, r: 0.03, sigma: adjustedVol });
+
+      const multiplier = (leg.position === 'long' ? 1 : -1) * leg.quantity;
+      
+      totalDelta += result.delta * multiplier;
+      totalGamma += result.gamma * multiplier;
+      totalTheta += result.theta * multiplier;
+      totalVega += result.vega * multiplier;
+      totalRho += result.rho * multiplier;
+    });
+
+    return { delta: totalDelta, gamma: totalGamma, theta: totalTheta, vega: totalVega, rho: totalRho };
+  }, [strategy]);
+
   const resetStrategy = useCallback(() => {
     setStrategy(DEFAULT_STRATEGY);
   }, []);
@@ -118,6 +148,7 @@ export function StrategyProvider({ children }: { children: React.ReactNode }) {
         removeLeg,
         updateLeg,
         calculateStrategyPnL,
+        calculateStrategyGreeks,
         resetStrategy
       }}
     >
