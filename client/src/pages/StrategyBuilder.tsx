@@ -11,6 +11,7 @@ import { useStrategy } from '../contexts/StrategyContext';
 import { PRESET_STRATEGIES } from '../lib/presetStrategies';
 import { OptionLeg } from '../types/strategy';
 import { nanoid } from 'nanoid';
+import { PayoffChart } from '../components/PayoffChart';
 
 export default function StrategyBuilder() {
   const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL } = useStrategy();
@@ -286,6 +287,14 @@ export default function StrategyBuilder() {
             </Card>
           </div>
         </div>
+
+        {/* Grafico Payoff */}
+        <PayoffChart 
+          legs={strategy.legs}
+          currentPrice={currentPrice}
+          daysElapsed={daysElapsed}
+          volChange={volChange}
+        />
       </div>
     </div>
   );
