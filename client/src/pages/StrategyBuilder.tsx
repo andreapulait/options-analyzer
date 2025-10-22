@@ -14,13 +14,12 @@ import { nanoid } from 'nanoid';
 import { PayoffChart } from '../components/PayoffChart';
 
 export default function StrategyBuilder() {
-  const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL, calculateStrategyGreeks } = useStrategy();
+  const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL } = useStrategy();
   const [currentPrice, setCurrentPrice] = useState(strategy.underlyingPrice);
   const [daysElapsed, setDaysElapsed] = useState(0);
   const [volChange, setVolChange] = useState(0);
 
   const pnl = calculateStrategyPnL(currentPrice, daysElapsed, volChange);
-  const greeks = calculateStrategyGreeks(currentPrice, daysElapsed, volChange);
 
   const handleLoadPreset = (presetType: string) => {
     const preset = PRESET_STRATEGIES.find(s => s.type === presetType);
@@ -139,7 +138,7 @@ export default function StrategyBuilder() {
                         </Button>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="grid grid-cols-3 gap-2 text-sm">
                         <div>
                           <Label className="text-xs text-slate-400">Premio</Label>
                           <Input
@@ -159,23 +158,6 @@ export default function StrategyBuilder() {
                             className="h-8 bg-slate-800"
                             step="0.1"
                           />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-slate-400">Scadenza</Label>
-                          <Input
-                            type="date"
-                            value={new Date(leg.expiration).toISOString().split('T')[0]}
-                            onChange={(e) => {
-                              const newDate = new Date(e.target.value);
-                              newDate.setHours(23, 59, 59, 999);
-                              updateLeg(leg.id, { expiration: newDate.toISOString() });
-                            }}
-                            className="h-8 bg-slate-800 text-xs"
-                            min={new Date().toISOString().split('T')[0]}
-                          />
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            DTE: {Math.ceil((new Date(leg.expiration).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} gg
-                          </div>
                         </div>
                         <div>
                           <Label className="text-xs text-slate-400">Quantità</Label>
@@ -346,50 +328,6 @@ export default function StrategyBuilder() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Greeks Strategia */}
-            {strategy.legs.length > 0 && (
-              <Card className="bg-gradient-to-br from-purple-600/20 to-purple-700/20 border-purple-500/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <span className="text-purple-400">⚡</span>
-                    Greeks Strategia
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Delta (Δ):</span>
-                    <span className={`font-semibold ${greeks.delta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {greeks.delta >= 0 ? '+' : ''}{greeks.delta.toFixed(3)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Gamma (Γ):</span>
-                    <span className="font-semibold text-blue-400">
-                      {greeks.gamma.toFixed(4)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Theta (Θ):</span>
-                    <span className={`font-semibold ${greeks.theta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {greeks.theta >= 0 ? '+' : ''}{greeks.theta.toFixed(2)}/giorno
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Vega (ν):</span>
-                    <span className="font-semibold text-purple-400">
-                      {greeks.vega >= 0 ? '+' : ''}{greeks.vega.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Rho (ρ):</span>
-                    <span className="font-semibold text-slate-300">
-                      {greeks.rho >= 0 ? '+' : ''}{greeks.rho.toFixed(3)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
 
