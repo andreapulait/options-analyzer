@@ -14,12 +14,13 @@ import { nanoid } from 'nanoid';
 import { PayoffChart } from '../components/PayoffChart';
 
 export default function StrategyBuilder() {
-  const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL } = useStrategy();
+  const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL, calculateStrategyGreeks } = useStrategy();
   const [currentPrice, setCurrentPrice] = useState(strategy.underlyingPrice);
   const [daysElapsed, setDaysElapsed] = useState(0);
   const [volChange, setVolChange] = useState(0);
 
   const pnl = calculateStrategyPnL(currentPrice, daysElapsed, volChange);
+  const greeks = calculateStrategyGreeks(currentPrice, daysElapsed, volChange);
 
   const handleLoadPreset = (presetType: string) => {
     const preset = PRESET_STRATEGIES.find(s => s.type === presetType);
@@ -120,14 +121,31 @@ export default function StrategyBuilder() {
                   strategy.legs.map((leg, index) => (
                     <div key={leg.id} className="bg-slate-700/30 rounded-lg p-3 space-y-2">
                       <div className="flex justify-between items-start">
-                        <div className="flex gap-2 items-center">
-                          <Badge variant={leg.position === 'long' ? 'default' : 'destructive'}>
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <Badge 
+                            variant={leg.position === 'long' ? 'default' : 'destructive'}
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => updateLeg(leg.id, { position: leg.position === 'long' ? 'short' : 'long' })}
+                          >
                             {leg.position === 'long' ? 'Long' : 'Short'}
                           </Badge>
-                          <Badge variant="outline">
+                          <Badge 
+                            variant="outline"
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => updateLeg(leg.id, { type: leg.type === 'call' ? 'put' : 'call' })}
+                          >
                             {leg.type === 'call' ? 'Call' : 'Put'}
                           </Badge>
-                          <span className="text-sm font-semibold">Strike: ${leg.strike}</span>
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs text-slate-400">Strike:</Label>
+                            <Input
+                              type="number"
+                              value={leg.strike}
+                              onChange={(e) => updateLeg(leg.id, { strike: Number(e.target.value) })}
+                              className="h-6 w-20 bg-slate-800 text-xs"
+                              step="1"
+                            />
+                          </div>
                         </div>
                         <Button
                           size="sm"
@@ -138,7 +156,7 @@ export default function StrategyBuilder() {
                         </Button>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <Label className="text-xs text-slate-400">Premio</Label>
                           <Input
@@ -158,6 +176,23 @@ export default function StrategyBuilder() {
                             className="h-8 bg-slate-800"
                             step="0.1"
                           />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-400">Scadenza</Label>
+                          <Input
+                            type="date"
+                            value={new Date(leg.expiration).toISOString().split('T')[0]}
+                            onChange={(e) => {
+                              const newDate = new Date(e.target.value);
+                              newDate.setHours(23, 59, 59, 999);
+                              updateLeg(leg.id, { expiration: newDate.toISOString() });
+                            }}
+                            className="h-8 bg-slate-800 text-xs"
+                            min={new Date().toISOString().split('T')[0]}
+                          />
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            DTE: {Math.ceil((new Date(leg.expiration).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} gg
+                          </div>
                         </div>
                         <div>
                           <Label className="text-xs text-slate-400">Quantità</Label>
@@ -328,6 +363,50 @@ export default function StrategyBuilder() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Pannello Greeks Strategia */}
+            {strategy.legs.length > 0 && (
+              <Card className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 border-purple-700/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <span className="text-purple-400">⚡</span>
+                    Greeks Strategia
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">Delta (Δ)</span>
+                    <span className={`font-semibold ${greeks.delta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {greeks.delta >= 0 ? '+' : ''}{greeks.delta.toFixed(3)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">Gamma (Γ)</span>
+                    <span className="font-semibold text-blue-400">
+                      {greeks.gamma.toFixed(4)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">Theta (Θ)</span>
+                    <span className={`font-semibold ${greeks.theta >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {greeks.theta >= 0 ? '+' : ''}{greeks.theta.toFixed(2)}/giorno
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">Vega (ν)</span>
+                    <span className="font-semibold text-purple-400">
+                      {greeks.vega >= 0 ? '+' : ''}{greeks.vega.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">Rho (ρ)</span>
+                    <span className="font-semibold text-gray-400">
+                      {greeks.rho >= 0 ? '+' : ''}{greeks.rho.toFixed(3)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 

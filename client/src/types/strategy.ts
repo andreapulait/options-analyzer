@@ -22,6 +22,14 @@ export interface Strategy {
   underlyingSymbol?: string;
 }
 
+export interface StrategyGreeks {
+  delta: number;
+  gamma: number;
+  theta: number;
+  vega: number;
+  rho: number;
+}
+
 export interface StrategyPnL {
   totalPnL: number;
   totalPnLPercent: number;
