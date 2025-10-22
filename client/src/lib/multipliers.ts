@@ -45,6 +45,36 @@ export const DEFAULT_MULTIPLIER = 100;
 
 export function getMultiplier(ticker: string): number {
   const normalizedTicker = ticker.trim().toUpperCase();
+  
+  // Prima controlla i moltiplicatori custom salvati
+  const customMultipliers = loadCustomMultipliers();
+  if (customMultipliers[normalizedTicker]) {
+    return customMultipliers[normalizedTicker];
+  }
+  
+  // Poi controlla il database predefinito
   return OPTION_MULTIPLIERS[normalizedTicker] || DEFAULT_MULTIPLIER;
+}
+
+// Carica moltiplicatori custom da LocalStorage
+function loadCustomMultipliers(): Record<string, number> {
+  try {
+    const stored = localStorage.getItem('customMultipliers');
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+// Salva moltiplicatore custom in LocalStorage
+export function saveCustomMultiplier(ticker: string, multiplier: number): void {
+  try {
+    const normalizedTicker = ticker.trim().toUpperCase();
+    const customMultipliers = loadCustomMultipliers();
+    customMultipliers[normalizedTicker] = multiplier;
+    localStorage.setItem('customMultipliers', JSON.stringify(customMultipliers));
+  } catch (error) {
+    console.error('Errore salvataggio moltiplicatore:', error);
+  }
 }
 

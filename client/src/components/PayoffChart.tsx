@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Card } from '@/components/ui/card';
 import type { OptionLeg } from '@/types/strategy';
@@ -10,9 +10,10 @@ interface PayoffChartProps {
   daysElapsed: number;
   volChange: number;
   multiplier: number;
+  onStatsCalculated?: (stats: { maxProfit: number; maxLoss: number; breakEvenPoints: number[] }) => void;
 }
 
-export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multiplier }: PayoffChartProps) {
+export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multiplier, onStatsCalculated }: PayoffChartProps) {
   // Genera dati per il grafico
   const chartData = useMemo(() => {
     if (legs.length === 0) return [];
@@ -152,6 +153,13 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
       maxLoss: Math.min(...profits)
     };
   }, [chartData]);
+
+  // Notifica i valori calcolati al componente padre
+  useEffect(() => {
+    if (onStatsCalculated) {
+      onStatsCalculated({ maxProfit, maxLoss, breakEvenPoints });
+    }
+  }, [maxProfit, maxLoss, breakEvenPoints, onStatsCalculated]);
 
   if (legs.length === 0) {
     return (

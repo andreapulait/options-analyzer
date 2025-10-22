@@ -13,7 +13,7 @@ import { OptionLeg } from '../types/strategy';
 import { nanoid } from 'nanoid';
 import { PayoffChart } from '../components/PayoffChart';
 import { fetchPrice, ApiConfig } from '../lib/priceApi';
-import { getMultiplier } from '../lib/multipliers';
+import { getMultiplier, saveCustomMultiplier } from '../lib/multipliers';
 
 export default function StrategyBuilder() {
   const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL, calculateStrategyGreeks } = useStrategy();
@@ -29,6 +29,19 @@ export default function StrategyBuilder() {
   const [showApiSettings, setShowApiSettings] = useState(false);
   const [finnhubKey, setFinnhubKey] = useState('');
   const [alphaVantageKey, setAlphaVantageKey] = useState('');
+
+  // Stati per statistiche dal grafico payoff
+  const [chartStats, setChartStats] = useState<{ maxProfit: number; maxLoss: number; breakEvenPoints: number[] }>({ 
+    maxProfit: 0, 
+    maxLoss: 0, 
+    breakEvenPoints: [] 
+  });
+
+  // Funzione per resettare la simulazione (P&L a zero)
+  const resetSimulation = () => {
+    setDaysElapsed(0);
+    setVolChange(0);
+  };
 
   // Calcola la scadenza più vicina per lo slider tempo
   const maxDaysToExpiry = useMemo(() => {
@@ -194,7 +207,14 @@ export default function StrategyBuilder() {
                 <Input
                   type="number"
                   value={strategy.multiplier}
-                  onChange={(e) => setStrategy({ ...strategy, multiplier: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const newMultiplier = Number(e.target.value);
+                    setStrategy({ ...strategy, multiplier: newMultiplier });
+                    // Salva il moltiplicatore custom se il ticker è presente
+                    if (strategy.underlyingSymbol) {
+                      saveCustomMultiplier(strategy.underlyingSymbol, newMultiplier);
+                    }
+                  }}
                   className="h-8 bg-slate-800"
                   step="1"
                 />
@@ -305,7 +325,10 @@ export default function StrategyBuilder() {
                             <Input
                               type="number"
                               value={leg.strike}
-                              onChange={(e) => updateLeg(leg.id, { strike: Number(e.target.value) })}
+                              onChange={(e) => {
+                                updateLeg(leg.id, { strike: Number(e.target.value) });
+                                resetSimulation();
+                              }}
                               className="h-6 w-20 bg-slate-800 text-xs"
                               step="1"
                             />
@@ -326,7 +349,10 @@ export default function StrategyBuilder() {
                           <Input
                             type="number"
                             value={leg.premium}
-                            onChange={(e) => updateLeg(leg.id, { premium: Number(e.target.value) })}
+                            onChange={(e) => {
+                              updateLeg(leg.id, { premium: Number(e.target.value) });
+                              resetSimulation();
+                            }}
                             className="h-8 bg-slate-800"
                             step="0.01"
                           />
@@ -334,11 +360,19 @@ export default function StrategyBuilder() {
                         <div>
                           <Label className="text-xs text-slate-400">IV (%)</Label>
                           <Input
-                            type="number"
+                            type="text"
                             value={(leg.iv * 100).toFixed(1)}
-                            onChange={(e) => updateLeg(leg.id, { iv: Number(e.target.value) / 100 })}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(',', '.');
+                              const numValue = parseFloat(value);
+                              if (!isNaN(numValue)) {
+                                updateLeg(leg.id, { iv: numValue / 100 });
+                                resetSimulation();
+                              }
+                            }}
+                            onFocus={(e) => e.target.select()}
                             className="h-8 bg-slate-800"
-                            step="0.1"
+                            placeholder="27.5"
                           />
                         </div>
                         <div>
@@ -509,20 +543,20 @@ export default function StrategyBuilder() {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Max Profit:</span>
-                  <span className="font-semibold">
-                    {pnl.maxProfit === null ? 'Illimitato' : `$${pnl.maxProfit.toFixed(2)}`}
+                  <span className="font-semibold text-green-400">
+                    ${chartStats.maxProfit.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Max Loss:</span>
                   <span className="font-semibold text-red-400">
-                    {pnl.maxLoss === null ? 'Illimitato' : `$${pnl.maxLoss.toFixed(2)}`}
+                    ${chartStats.maxLoss.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Break-Even:</span>
                   <span className="font-semibold">
-                    {pnl.breakEvenPoints.length === 0 ? 'N/A' : pnl.breakEvenPoints.map(p => `$${p.toFixed(2)}`).join(', ')}
+                    {chartStats.breakEvenPoints.length === 0 ? 'N/A' : chartStats.breakEvenPoints.map(p => `$${p.toFixed(2)}`).join(', ')}
                   </span>
                 </div>
               </CardContent>
@@ -581,6 +615,7 @@ export default function StrategyBuilder() {
           daysElapsed={daysElapsed}
           volChange={volChange}
           multiplier={strategy.multiplier}
+          onStatsCalculated={setChartStats}
         />
       </div>
     </div>
