@@ -154,11 +154,32 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
     for (let i = 1; i < chartData.length; i++) {
       const prev = chartData[i - 1];
       const curr = chartData[i];
+      
+      // Verifica che i valori siano validi
+      if (!isFinite(prev.total) || !isFinite(curr.total) || !isFinite(prev.price) || !isFinite(curr.price)) {
+        continue;
+      }
+      
       if ((prev.total <= 0 && curr.total >= 0) || (prev.total >= 0 && curr.total <= 0)) {
         // Interpolazione lineare per trovare il punto esatto
-        const ratio = Math.abs(prev.total) / (Math.abs(prev.total) + Math.abs(curr.total));
-        const breakEven = prev.price + (curr.price - prev.price) * ratio;
-        points.push(breakEven);
+        const denominator = Math.abs(prev.total) + Math.abs(curr.total);
+        
+        // Evita divisione per zero
+        if (denominator < 0.01) {
+          // Se entrambi i valori sono molto vicini a zero, usa il punto medio
+          const breakEven = (prev.price + curr.price) / 2;
+          if (isFinite(breakEven) && !points.includes(breakEven)) {
+            points.push(breakEven);
+          }
+        } else {
+          const ratio = Math.abs(prev.total) / denominator;
+          const breakEven = prev.price + (curr.price - prev.price) * ratio;
+          
+          // Verifica che il break-even sia valido e non duplicato
+          if (isFinite(breakEven) && !points.includes(breakEven)) {
+            points.push(breakEven);
+          }
+        }
       }
     }
     return points;
@@ -167,10 +188,20 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
   // Calcola max profit e max loss
   const { maxProfit, maxLoss } = useMemo(() => {
     if (chartData.length === 0) return { maxProfit: 0, maxLoss: 0 };
-    const profits = chartData.map(d => d.total);
+    
+    // Filtra solo valori finiti
+    const profits = chartData
+      .map(d => d.total)
+      .filter(p => isFinite(p));
+    
+    if (profits.length === 0) return { maxProfit: 0, maxLoss: 0 };
+    
+    const maxP = Math.max(...profits);
+    const maxL = Math.min(...profits);
+    
     return {
-      maxProfit: Math.max(...profits),
-      maxLoss: Math.min(...profits)
+      maxProfit: isFinite(maxP) ? maxP : 0,
+      maxLoss: isFinite(maxL) ? maxL : 0
     };
   }, [chartData]);
 
