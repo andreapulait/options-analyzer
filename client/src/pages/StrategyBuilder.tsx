@@ -6,21 +6,62 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, Settings, RefreshCw } from 'lucide-react';
 import { useStrategy } from '../contexts/StrategyContext';
 import { PRESET_STRATEGIES } from '../lib/presetStrategies';
 import { OptionLeg } from '../types/strategy';
 import { nanoid } from 'nanoid';
 import { PayoffChart } from '../components/PayoffChart';
+import { fetchPrice, type ApiConfig } from '../lib/priceApi';
 
 export default function StrategyBuilder() {
   const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL, calculateStrategyGreeks } = useStrategy();
   const [currentPrice, setCurrentPrice] = useState(strategy.underlyingPrice);
   const [daysElapsed, setDaysElapsed] = useState(0);
   const [volChange, setVolChange] = useState(0);
+  
+  // Stati per fetch prezzo
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<string | null>(null);
+  const [lastFetchSource, setLastFetchSource] = useState<string | null>(null);
+  const [showApiSettings, setShowApiSettings] = useState(false);
+  const [finnhubKey, setFinnhubKey] = useState('');
+  const [alphaVantageKey, setAlphaVantageKey] = useState('');
 
   const pnl = calculateStrategyPnL(currentPrice, daysElapsed, volChange);
   const greeks = calculateStrategyGreeks(currentPrice, daysElapsed, volChange);
+
+  const handleFetchPrice = async () => {
+    const ticker = strategy.underlyingSymbol?.trim().toUpperCase();
+    if (!ticker) {
+      setFetchError('Inserisci un simbolo');
+      return;
+    }
+
+    setIsFetching(true);
+    setFetchError(null);
+
+    const apiConfig: ApiConfig = {
+      finnhubKey: finnhubKey || undefined,
+      alphaVantageKey: alphaVantageKey || undefined
+    };
+
+    try {
+      const result = await fetchPrice(ticker, apiConfig);
+      setStrategy({ ...strategy, underlyingPrice: result.price });
+      setCurrentPrice(result.price);
+      setLastFetchTime(new Date().toLocaleTimeString('it-IT'));
+      setLastFetchSource(result.source);
+      setFetchError(null);
+    } catch (error) {
+      setFetchError(error instanceof Error ? error.message : 'Errore sconosciuto');
+      setLastFetchTime(null);
+      setLastFetchSource(null);
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   const handleLoadPreset = (presetType: string) => {
     const preset = PRESET_STRATEGIES.find(s => s.type === presetType);
@@ -75,27 +116,118 @@ export default function StrategyBuilder() {
           </div>
         </div>
 
-        {/* Preset Strategies */}
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-lg">Strategie Predefinite</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {PRESET_STRATEGIES.map(preset => (
-                <Button
-                  key={preset.type}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleLoadPreset(preset.type)}
-                  className="text-xs"
-                >
-                  {preset.name}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Sottostante e Strategie Predefinite */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Sottostante (1/4) */}
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Sottostante</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-xs text-slate-400">Simbolo</Label>
+                <div className="flex gap-1">
+                  <Input
+                    type="text"
+                    value={strategy.underlyingSymbol || ''}
+                    onChange={(e) => setStrategy({ ...strategy, underlyingSymbol: e.target.value.toUpperCase() })}
+                    placeholder="es. AAPL"
+                    className="h-8 bg-slate-800 uppercase flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleFetchPrice}
+                    disabled={isFetching || !strategy.underlyingSymbol}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+                {fetchError && (
+                  <p className="text-xs text-red-400 mt-1">{fetchError}</p>
+                )}
+                {lastFetchTime && !fetchError && (
+                  <p className="text-xs text-green-400 mt-1">
+                    {lastFetchTime} ({lastFetchSource})
+                  </p>
+                )}
+              </div>
+              
+              <div>
+                <Label className="text-xs text-slate-400">Prezzo ($)</Label>
+                <Input
+                  type="number"
+                  value={strategy.underlyingPrice}
+                  onChange={(e) => {
+                    const newPrice = Number(e.target.value);
+                    setStrategy({ ...strategy, underlyingPrice: newPrice });
+                    setCurrentPrice(newPrice);
+                  }}
+                  className="h-8 bg-slate-800"
+                  step="0.01"
+                />
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowApiSettings(!showApiSettings)}
+                className="h-6 px-2 text-xs text-slate-400 hover:text-white w-full"
+              >
+                <Settings className="w-3 h-3 mr-1" />
+                {showApiSettings ? 'Nascondi' : 'Configura'} API
+              </Button>
+              
+              {showApiSettings && (
+                <div className="space-y-2 p-2 bg-slate-900 rounded border border-slate-700">
+                  <div>
+                    <Label className="text-xs text-slate-400">Finnhub Key</Label>
+                    <Input
+                      type="text"
+                      placeholder="Opzionale"
+                      value={finnhubKey}
+                      onChange={(e) => setFinnhubKey(e.target.value)}
+                      className="h-7 text-xs bg-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400">Alpha Vantage Key</Label>
+                    <Input
+                      type="text"
+                      placeholder="Opzionale"
+                      value={alphaVantageKey}
+                      onChange={(e) => setAlphaVantageKey(e.target.value)}
+                      className="h-7 text-xs bg-slate-800"
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Strategie Predefinite (3/4) */}
+          <Card className="bg-slate-800/50 border-slate-700 lg:col-span-3">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Strategie Predefinite</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                {PRESET_STRATEGIES.map(preset => (
+                  <Button
+                    key={preset.type}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleLoadPreset(preset.type)}
+                    className="text-xs h-8"
+                  >
+                    {preset.name}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Strategy Configuration */}
@@ -112,34 +244,6 @@ export default function StrategyBuilder() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* Controlli Sottostante */}
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-600">
-                  <div>
-                    <Label className="text-xs text-slate-400">Simbolo Sottostante</Label>
-                    <Input
-                      type="text"
-                      value={strategy.underlyingSymbol || ''}
-                      onChange={(e) => setStrategy({ ...strategy, underlyingSymbol: e.target.value })}
-                      placeholder="es. AAPL, SPY"
-                      className="h-8 bg-slate-800 uppercase"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-slate-400">Prezzo Sottostante ($)</Label>
-                    <Input
-                      type="number"
-                      value={strategy.underlyingPrice}
-                      onChange={(e) => {
-                        const newPrice = Number(e.target.value);
-                        setStrategy({ ...strategy, underlyingPrice: newPrice });
-                        setCurrentPrice(newPrice);
-                      }}
-                      className="h-8 bg-slate-800"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-
                 {strategy.legs.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
                     <p>Nessun leg presente</p>
