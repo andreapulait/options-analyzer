@@ -57,29 +57,46 @@ export function StrategyProvider({ children }: { children: React.ReactNode }) {
     volChange: number
   ): StrategyPnL => {
     const legsPnL = strategy.legs.map(leg => {
-      const timeToExpiry = Math.max(0, (new Date(leg.expiration).getTime() - Date.now()) / (1000 * 60 * 60 * 24) - daysElapsed) / 365;
-      const adjustedVol = leg.iv + volChange;
+      const positionMultiplier = leg.position === 'long' ? 1 : -1;
+      const contractMultiplier = strategy.multiplier || 100;
+      
+      // Gestione stock (sottostante)
+      if (leg.type === 'stock') {
+        // P&L stock = (Prezzo Corrente - Prezzo Acquisto) * Quantità
+        const stockPnL = (currentPrice - (leg.premium || 0)) * leg.quantity;
+        const pnl = positionMultiplier * stockPnL;
+        const cost = (leg.premium || 0) * leg.quantity;
+        const pnlPercent = cost > 0 ? (pnl / cost) * 100 : 0;
+        
+        return {
+          legId: leg.id,
+          pnl,
+          pnlPercent
+        };
+      }
+      
+      // Gestione opzioni (call/put)
+      const timeToExpiry = Math.max(0, (new Date(leg.expiration!).getTime() - Date.now()) / (1000 * 60 * 60 * 24) - daysElapsed) / 365;
+      const adjustedVol = (leg.iv || 0.25) + volChange;
       
       const currentValue = leg.type === 'call'
         ? calculateCall({
             S: currentPrice,
-            K: leg.strike,
+            K: leg.strike || 0,
             T: timeToExpiry,
             r: 0.03,
             sigma: adjustedVol
           }).price
         : calculatePut({
             S: currentPrice,
-            K: leg.strike,
+            K: leg.strike || 0,
             T: timeToExpiry,
             r: 0.03,
             sigma: adjustedVol
           }).price;
 
-      const positionMultiplier = leg.position === 'long' ? 1 : -1;
-      const contractMultiplier = strategy.multiplier || 100;
-      const pnl = positionMultiplier * (currentValue - leg.premium) * leg.quantity * contractMultiplier;
-      const pnlPercent = leg.premium > 0 ? (pnl / (leg.premium * leg.quantity * contractMultiplier)) * 100 : 0;
+      const pnl = positionMultiplier * (currentValue - (leg.premium || 0)) * leg.quantity * contractMultiplier;
+      const pnlPercent = (leg.premium || 0) > 0 ? (pnl / ((leg.premium || 0) * leg.quantity * contractMultiplier)) * 100 : 0;
 
       return {
         legId: leg.id,
@@ -92,7 +109,9 @@ export function StrategyProvider({ children }: { children: React.ReactNode }) {
     const contractMultiplier = strategy.multiplier || 100;
     const totalCost = strategy.legs.reduce((sum, leg) => {
       const positionMultiplier = leg.position === 'long' ? 1 : -1;
-      return sum + positionMultiplier * leg.premium * leg.quantity * contractMultiplier;
+      // Per stock, non moltiplichiamo per contractMultiplier (già in quantità)
+      const multiplier = leg.type === 'stock' ? 1 : contractMultiplier;
+      return sum + positionMultiplier * (leg.premium || 0) * leg.quantity * multiplier;
     }, 0);
     const totalPnLPercent = totalCost !== 0 ? (totalPnL / Math.abs(totalCost)) * 100 : 0;
 
@@ -117,16 +136,25 @@ export function StrategyProvider({ children }: { children: React.ReactNode }) {
     let totalRho = 0;
 
     strategy.legs.forEach(leg => {
+      const multiplier = (leg.position === 'long' ? 1 : -1) * leg.quantity;
+      
+      // Gestione stock (sottostante)
+      if (leg.type === 'stock') {
+        // Stock ha delta = 1 (o -1 se short), altre greche = 0
+        totalDelta += multiplier;
+        // Gamma, Theta, Vega, Rho = 0 per stock (non contribuiscono)
+        return;
+      }
+      
+      // Gestione opzioni (call/put)
       const timeToExpiry = Math.max(0, 
-        (new Date(leg.expiration).getTime() - Date.now()) / (1000 * 60 * 60 * 24) - daysElapsed
+        (new Date(leg.expiration!).getTime() - Date.now()) / (1000 * 60 * 60 * 24) - daysElapsed
       ) / 365;
-      const adjustedVol = leg.iv + volChange;
+      const adjustedVol = (leg.iv || 0.25) + volChange;
       
       const result = leg.type === 'call'
-        ? calculateCall({ S: currentPrice, K: leg.strike, T: timeToExpiry, r: 0.03, sigma: adjustedVol })
-        : calculatePut({ S: currentPrice, K: leg.strike, T: timeToExpiry, r: 0.03, sigma: adjustedVol });
-
-      const multiplier = (leg.position === 'long' ? 1 : -1) * leg.quantity;
+        ? calculateCall({ S: currentPrice, K: leg.strike || 0, T: timeToExpiry, r: 0.03, sigma: adjustedVol })
+        : calculatePut({ S: currentPrice, K: leg.strike || 0, T: timeToExpiry, r: 0.03, sigma: adjustedVol });
       
       totalDelta += result.delta * multiplier;
       totalGamma += result.gamma * multiplier;
