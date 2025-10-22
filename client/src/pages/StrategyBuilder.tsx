@@ -544,13 +544,13 @@ export default function StrategyBuilder() {
                 <div className="flex justify-between">
                   <span className="text-slate-400">Max Profit:</span>
                   <span className="font-semibold text-green-400">
-                    ${chartStats.maxProfit.toFixed(2)}
+                    {chartStats.maxProfit === Infinity ? 'Illimitato' : `$${chartStats.maxProfit.toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Max Loss:</span>
                   <span className="font-semibold text-red-400">
-                    ${chartStats.maxLoss.toFixed(2)}
+                    {chartStats.maxLoss === -Infinity ? 'Illimitato' : `$${chartStats.maxLoss.toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
