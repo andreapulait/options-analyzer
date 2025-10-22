@@ -196,9 +196,39 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
 
   // Calcola max profit e max loss
   const { maxProfit, maxLoss } = useMemo(() => {
-    if (chartData.length === 0) return { maxProfit: 0, maxLoss: 0 };
+    if (chartData.length === 0 || legs.length === 0) return { maxProfit: 0, maxLoss: 0 };
     
-    // Filtra solo valori finiti
+    // Analizza la strategia per determinare se ha profitto/perdita illimitati
+    let hasUnlimitedUpside = false;
+    let hasUnlimitedDownside = false;
+    
+    // Calcola il delta netto della strategia
+    let netCallDelta = 0;
+    let netPutDelta = 0;
+    
+    legs.forEach(leg => {
+      const multiplier = leg.position === 'long' ? 1 : -1;
+      if (leg.type === 'call') {
+        netCallDelta += multiplier * leg.quantity;
+      } else {
+        netPutDelta += multiplier * leg.quantity;
+      }
+    });
+    
+    // Se abbiamo call long nette (delta positivo), profitto illimitato al rialzo
+    if (netCallDelta > 0) {
+      hasUnlimitedUpside = true;
+    }
+    // Se abbiamo call short nette (delta negativo), perdita illimitata al rialzo
+    if (netCallDelta < 0) {
+      hasUnlimitedDownside = true;
+    }
+    // Se abbiamo put short nette, perdita illimitata al ribasso
+    if (netPutDelta < 0) {
+      hasUnlimitedDownside = true;
+    }
+    
+    // Filtra solo valori finiti dal grafico
     const profits = chartData
       .map(d => d.total)
       .filter(p => isFinite(p));
@@ -209,10 +239,10 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
     const maxL = Math.min(...profits);
     
     return {
-      maxProfit: isFinite(maxP) ? maxP : 0,
-      maxLoss: isFinite(maxL) ? maxL : 0
+      maxProfit: hasUnlimitedUpside ? Infinity : (isFinite(maxP) ? maxP : 0),
+      maxLoss: hasUnlimitedDownside ? -Infinity : (isFinite(maxL) ? maxL : 0)
     };
-  }, [chartData]);
+  }, [chartData, legs]);
 
   // Notifica i valori calcolati al componente padre
   useEffect(() => {
