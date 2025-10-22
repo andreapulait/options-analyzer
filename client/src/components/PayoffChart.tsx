@@ -61,17 +61,33 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
       let totalPnL = 0;
       let totalPnLAtExpiry = 0;
       legs.forEach((leg, index) => {
-        // Calcola giorni alla scadenza dalla data di expiration
-        const expirationDate = new Date(leg.expiration);
+        let legPnL = 0;
+        let legPnLAtExpiry = 0;
+        
+        // Gestione stock (sottostante)
+        if (leg.type === 'stock') {
+          // Payoff lineare: (Prezzo Corrente - Prezzo Acquisto) * Quantità
+          const stockPnL = (price - (leg.premium || currentPrice)) * leg.quantity;
+          legPnL = leg.position === 'long' ? stockPnL : -stockPnL;
+          legPnLAtExpiry = legPnL; // Per lo stock, payoff corrente = payoff a scadenza
+          
+          point[`leg${index}`] = legPnL;
+          totalPnL += legPnL;
+          totalPnLAtExpiry += legPnLAtExpiry;
+          return; // Skip il resto del calcolo per opzioni
+        }
+        
+        // Calcola giorni alla scadenza dalla data di expiration (solo per opzioni)
+        const expirationDate = new Date(leg.expiration!);
         const daysToExpiry = Math.max(0, Math.floor((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
         const timeToExpiry = Math.max(0, (daysToExpiry - daysElapsed) / 365);
-        const iv = leg.iv + volChange / 100;
+        const iv = (leg.iv || 0.25) + volChange / 100;
 
         let optionPrice = 0;
         if (leg.type === 'call') {
           const result = calculateCall({
             S: price,
-            K: leg.strike,
+            K: leg.strike!,
             T: Math.max(0, timeToExpiry),
             sigma: Math.max(0.01, iv),
             r: 0.03
@@ -80,7 +96,7 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
         } else {
           const result = calculatePut({
             S: price,
-            K: leg.strike,
+            K: leg.strike!,
             T: Math.max(0, timeToExpiry),
             sigma: Math.max(0.01, iv),
             r: 0.03
@@ -88,9 +104,9 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
           optionPrice = result.price;
         }
 
-        const legPnL = (leg.position === 'long' 
-          ? (optionPrice - leg.premium) * leg.quantity
-          : (leg.premium - optionPrice) * leg.quantity) * multiplier;
+        legPnL = (leg.position === 'long' 
+          ? (optionPrice - (leg.premium || 0)) * leg.quantity
+          : ((leg.premium || 0) - optionPrice) * leg.quantity) * multiplier;
 
         // Calcola P&L "a scadenza" della prima opzione
         // Se questo leg scade alla stessa data della scadenza più vicina, usa valore intrinseco
@@ -101,9 +117,9 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
         if (isNearestExpiry) {
           // Questa opzione scade: usa solo valore intrinseco
           if (leg.type === 'call') {
-            optionPriceAtNearestExpiry = Math.max(0, price - leg.strike);
+            optionPriceAtNearestExpiry = Math.max(0, price - (leg.strike || 0));
           } else {
-            optionPriceAtNearestExpiry = Math.max(0, leg.strike - price);
+            optionPriceAtNearestExpiry = Math.max(0, (leg.strike || 0) - price);
           }
         } else {
           // Questa opzione ha ancora tempo: calcola valore con tempo residuo
@@ -113,27 +129,27 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
           if (leg.type === 'call') {
             const result = calculateCall({
               S: price,
-              K: leg.strike,
+              K: leg.strike || 0,
               T: remainingTime,
-              sigma: Math.max(0.01, leg.iv), // Usa IV originale senza volChange
+              sigma: Math.max(0.01, leg.iv || 0.25), // Usa IV originale senza volChange
               r: 0.03
             });
             optionPriceAtNearestExpiry = result.price;
           } else {
             const result = calculatePut({
               S: price,
-              K: leg.strike,
+              K: leg.strike || 0,
               T: remainingTime,
-              sigma: Math.max(0.01, leg.iv), // Usa IV originale senza volChange
+              sigma: Math.max(0.01, leg.iv || 0.25), // Usa IV originale senza volChange
               r: 0.03
             });
             optionPriceAtNearestExpiry = result.price;
           }
         }
         
-        const legPnLAtExpiry = (leg.position === 'long'
-          ? (optionPriceAtNearestExpiry - leg.premium) * leg.quantity
-          : (leg.premium - optionPriceAtNearestExpiry) * leg.quantity) * multiplier;
+        legPnLAtExpiry = (leg.position === 'long'
+          ? (optionPriceAtNearestExpiry - (leg.premium || 0)) * leg.quantity
+          : ((leg.premium || 0) - optionPriceAtNearestExpiry) * leg.quantity) * multiplier;
 
         point[`leg${index}`] = legPnL;
         totalPnL += legPnL;
@@ -205,22 +221,29 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
     // Calcola il delta netto della strategia
     let netCallDelta = 0;
     let netPutDelta = 0;
+    let netStockDelta = 0;
     
     legs.forEach(leg => {
       const multiplier = leg.position === 'long' ? 1 : -1;
       if (leg.type === 'call') {
         netCallDelta += multiplier * leg.quantity;
-      } else {
+      } else if (leg.type === 'put') {
         netPutDelta += multiplier * leg.quantity;
+      } else if (leg.type === 'stock') {
+        // Stock ha delta = 1 (long) o -1 (short)
+        netStockDelta += multiplier * leg.quantity;
       }
     });
     
-    // Se abbiamo call long nette (delta positivo), profitto illimitato al rialzo
-    if (netCallDelta > 0) {
+    // Calcola delta totale (stock + call contribuiscono al rialzo)
+    const totalUpsideDelta = netStockDelta + netCallDelta;
+    
+    // Se abbiamo delta positivo netto al rialzo (stock long o call long nette), profitto illimitato
+    if (totalUpsideDelta > 0) {
       hasUnlimitedUpside = true;
     }
-    // Se abbiamo call short nette (delta negativo), perdita illimitata al rialzo
-    if (netCallDelta < 0) {
+    // Se abbiamo delta negativo netto al rialzo (stock short o call short nette), perdita illimitata
+    if (totalUpsideDelta < 0) {
       hasUnlimitedDownside = true;
     }
     // Se abbiamo put short nette, perdita illimitata al ribasso

@@ -47,8 +47,11 @@ export default function StrategyBuilder() {
   const maxDaysToExpiry = useMemo(() => {
     if (strategy.legs.length === 0) return 60; // Default se non ci sono legs
     const today = new Date();
-    const daysToExpiryArray = strategy.legs.map(leg => {
-      const expirationDate = new Date(leg.expiration);
+    // Filtra solo le opzioni (non stock) per calcolare la scadenza
+    const optionLegs = strategy.legs.filter(leg => leg.type !== 'stock' && leg.expiration);
+    if (optionLegs.length === 0) return 60; // Se ci sono solo stock, default 60 giorni
+    const daysToExpiryArray = optionLegs.map(leg => {
+      const expirationDate = new Date(leg.expiration!);
       return Math.max(0, Math.floor((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
     });
     return Math.min(...daysToExpiryArray); // Scadenza più vicina
@@ -122,6 +125,15 @@ export default function StrategyBuilder() {
       quantity: 1,
       expiration: baseDate.toISOString(),
       iv: 0.25
+    });
+  };
+
+  const handleAddStock = () => {
+    addLeg({
+      type: 'stock',
+      position: 'long',
+      premium: strategy.underlyingPrice, // Prezzo di acquisto = prezzo corrente
+      quantity: strategy.multiplier, // Quantità di default = moltiplicatore
     });
   };
 
@@ -289,10 +301,16 @@ export default function StrategyBuilder() {
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-lg">{strategy.name}</CardTitle>
-                  <Button size="sm" onClick={handleAddCustomLeg}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    Aggiungi Leg
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={handleAddStock}>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Sottostante
+                    </Button>
+                    <Button size="sm" onClick={handleAddCustomLeg}>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Opzione
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -313,26 +331,34 @@ export default function StrategyBuilder() {
                           >
                             {leg.position === 'long' ? 'Long' : 'Short'}
                           </Badge>
-                          <Badge 
-                            variant="outline"
-                            className="cursor-pointer hover:opacity-80"
-                            onClick={() => updateLeg(leg.id, { type: leg.type === 'call' ? 'put' : 'call' })}
-                          >
-                            {leg.type === 'call' ? 'Call' : 'Put'}
-                          </Badge>
-                          <div className="flex items-center gap-1">
-                            <Label className="text-xs text-slate-400">Strike:</Label>
-                            <Input
-                              type="number"
-                              value={leg.strike}
-                              onChange={(e) => {
-                                updateLeg(leg.id, { strike: Number(e.target.value) });
-                                resetSimulation();
-                              }}
-                              className="h-6 w-20 bg-slate-800 text-xs"
-                              step="1"
-                            />
-                          </div>
+                          {leg.type === 'stock' ? (
+                            <Badge variant="secondary" className="bg-amber-600/20 text-amber-400 border-amber-600/50">
+                              Stock
+                            </Badge>
+                          ) : (
+                            <Badge 
+                              variant="outline"
+                              className="cursor-pointer hover:opacity-80"
+                              onClick={() => updateLeg(leg.id, { type: leg.type === 'call' ? 'put' : 'call' })}
+                            >
+                              {leg.type === 'call' ? 'Call' : 'Put'}
+                            </Badge>
+                          )}
+                          {leg.type !== 'stock' && (
+                            <div className="flex items-center gap-1">
+                              <Label className="text-xs text-slate-400">Strike:</Label>
+                              <Input
+                                type="number"
+                                value={leg.strike}
+                                onChange={(e) => {
+                                  updateLeg(leg.id, { strike: Number(e.target.value) });
+                                  resetSimulation();
+                                }}
+                                className="h-6 w-20 bg-slate-800 text-xs"
+                                step="1"
+                              />
+                            </div>
+                          )}
                         </div>
                         <Button
                           size="sm"
@@ -345,7 +371,7 @@ export default function StrategyBuilder() {
                       
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <Label className="text-xs text-slate-400">Premio</Label>
+                          <Label className="text-xs text-slate-400">{leg.type === 'stock' ? 'Prezzo Acquisto' : 'Premio'}</Label>
                           <Input
                             type="number"
                             value={leg.premium}
@@ -357,41 +383,45 @@ export default function StrategyBuilder() {
                             step="0.01"
                           />
                         </div>
-                        <div>
-                          <Label className="text-xs text-slate-400">IV (%)</Label>
-                          <Input
-                            type="text"
-                            value={(leg.iv * 100).toFixed(1)}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(',', '.');
-                              const numValue = parseFloat(value);
-                              if (!isNaN(numValue)) {
-                                updateLeg(leg.id, { iv: numValue / 100 });
-                                resetSimulation();
-                              }
-                            }}
-                            onFocus={(e) => e.target.select()}
-                            className="h-8 bg-slate-800"
-                            placeholder="27.5"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-slate-400">Scadenza</Label>
-                          <Input
-                            type="date"
-                            value={new Date(leg.expiration).toISOString().split('T')[0]}
-                            onChange={(e) => {
-                              const newDate = new Date(e.target.value);
-                              newDate.setHours(23, 59, 59, 999);
-                              updateLeg(leg.id, { expiration: newDate.toISOString() });
-                            }}
-                            className="h-8 bg-slate-800 text-xs"
-                            min={new Date().toISOString().split('T')[0]}
-                          />
-                          <div className="text-xs text-slate-500 mt-0.5">
-                            DTE: {Math.ceil((new Date(leg.expiration).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} gg
+                        {leg.type !== 'stock' && (
+                          <div>
+                            <Label className="text-xs text-slate-400">IV (%)</Label>
+                            <Input
+                              type="text"
+                              value={(leg.iv! * 100).toFixed(1)}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(',', '.');
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                  updateLeg(leg.id, { iv: numValue / 100 });
+                                  resetSimulation();
+                                }
+                              }}
+                              onFocus={(e) => e.target.select()}
+                              className="h-8 bg-slate-800"
+                              placeholder="27.5"
+                            />
                           </div>
-                        </div>
+                        )}
+                        {leg.type !== 'stock' && (
+                          <div>
+                            <Label className="text-xs text-slate-400">Scadenza</Label>
+                            <Input
+                              type="date"
+                              value={new Date(leg.expiration!).toISOString().split('T')[0]}
+                              onChange={(e) => {
+                                const newDate = new Date(e.target.value);
+                                newDate.setHours(23, 59, 59, 999);
+                                updateLeg(leg.id, { expiration: newDate.toISOString() });
+                              }}
+                              className="h-8 bg-slate-800 text-xs"
+                              min={new Date().toISOString().split('T')[0]}
+                            />
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              DTE: {Math.ceil((new Date(leg.expiration!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} gg
+                            </div>
+                          </div>
+                        )}
                         <div>
                           <Label className="text-xs text-slate-400">Quantità</Label>
                           <Input

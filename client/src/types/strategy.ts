@@ -1,17 +1,17 @@
 // Tipi per strategie multi-leg
 
-export type OptionType = 'call' | 'put';
+export type OptionType = 'call' | 'put' | 'stock';
 export type PositionType = 'long' | 'short';
 
 export interface OptionLeg {
   id: string;
   type: OptionType;
   position: PositionType;
-  strike: number;
-  premium: number;
+  strike?: number; // Opzionale per stock
+  premium?: number; // Opzionale per stock (prezzo di acquisto)
   quantity: number;
-  expiration: string; // ISO date string
-  iv: number; // Volatilità implicita in decimale (0.25 = 25%)
+  expiration?: string; // ISO date string, opzionale per stock
+  iv?: number; // Volatilità implicita in decimale (0.25 = 25%), opzionale per stock
 }
 
 export interface Strategy {
