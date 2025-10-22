@@ -93,7 +93,7 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
               S: price,
               K: leg.strike,
               T: remainingTime,
-              sigma: Math.max(0.01, iv),
+              sigma: Math.max(0.01, leg.iv), // Usa IV originale senza volChange
               r: 0.03
             });
             optionPriceAtNearestExpiry = result.price;
@@ -102,7 +102,7 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
               S: price,
               K: leg.strike,
               T: remainingTime,
-              sigma: Math.max(0.01, iv),
+              sigma: Math.max(0.01, leg.iv), // Usa IV originale senza volChange
               r: 0.03
             });
             optionPriceAtNearestExpiry = result.price;
