@@ -112,6 +112,34 @@ export default function StrategyBuilder() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Controlli Sottostante */}
+                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-slate-600">
+                  <div>
+                    <Label className="text-xs text-slate-400">Simbolo Sottostante</Label>
+                    <Input
+                      type="text"
+                      value={strategy.underlyingSymbol || ''}
+                      onChange={(e) => setStrategy({ ...strategy, underlyingSymbol: e.target.value })}
+                      placeholder="es. AAPL, SPY"
+                      className="h-8 bg-slate-800 uppercase"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400">Prezzo Sottostante ($)</Label>
+                    <Input
+                      type="number"
+                      value={strategy.underlyingPrice}
+                      onChange={(e) => {
+                        const newPrice = Number(e.target.value);
+                        setStrategy({ ...strategy, underlyingPrice: newPrice });
+                        setCurrentPrice(newPrice);
+                      }}
+                      className="h-8 bg-slate-800"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+
                 {strategy.legs.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
                     <p>Nessun leg presente</p>
