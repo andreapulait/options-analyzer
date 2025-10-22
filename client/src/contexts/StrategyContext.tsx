@@ -21,7 +21,8 @@ const DEFAULT_STRATEGY: Strategy = {
   name: 'Custom Strategy',
   legs: [],
   underlyingPrice: 100,
-  underlyingSymbol: 'AAPL'
+  underlyingSymbol: 'AAPL',
+  multiplier: 100
 };
 
 export function StrategyProvider({ children }: { children: React.ReactNode }) {
@@ -75,9 +76,10 @@ export function StrategyProvider({ children }: { children: React.ReactNode }) {
             sigma: adjustedVol
           }).price;
 
-      const multiplier = leg.position === 'long' ? 1 : -1;
-      const pnl = multiplier * (currentValue - leg.premium) * leg.quantity;
-      const pnlPercent = leg.premium > 0 ? (pnl / (leg.premium * leg.quantity)) * 100 : 0;
+      const positionMultiplier = leg.position === 'long' ? 1 : -1;
+      const contractMultiplier = strategy.multiplier || 100;
+      const pnl = positionMultiplier * (currentValue - leg.premium) * leg.quantity * contractMultiplier;
+      const pnlPercent = leg.premium > 0 ? (pnl / (leg.premium * leg.quantity * contractMultiplier)) * 100 : 0;
 
       return {
         legId: leg.id,
@@ -87,9 +89,10 @@ export function StrategyProvider({ children }: { children: React.ReactNode }) {
     });
 
     const totalPnL = legsPnL.reduce((sum, leg) => sum + leg.pnl, 0);
+    const contractMultiplier = strategy.multiplier || 100;
     const totalCost = strategy.legs.reduce((sum, leg) => {
-      const multiplier = leg.position === 'long' ? 1 : -1;
-      return sum + multiplier * leg.premium * leg.quantity;
+      const positionMultiplier = leg.position === 'long' ? 1 : -1;
+      return sum + positionMultiplier * leg.premium * leg.quantity * contractMultiplier;
     }, 0);
     const totalPnLPercent = totalCost !== 0 ? (totalPnL / Math.abs(totalCost)) * 100 : 0;
 

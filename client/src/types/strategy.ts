@@ -20,6 +20,7 @@ export interface Strategy {
   legs: OptionLeg[];
   underlyingPrice: number;
   underlyingSymbol?: string;
+  multiplier: number; // Moltiplicatore contratto (es. 100 per azioni USA, 5 per DAX)
 }
 
 export interface StrategyGreeks {

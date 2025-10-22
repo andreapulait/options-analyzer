@@ -12,7 +12,8 @@ import { PRESET_STRATEGIES } from '../lib/presetStrategies';
 import { OptionLeg } from '../types/strategy';
 import { nanoid } from 'nanoid';
 import { PayoffChart } from '../components/PayoffChart';
-import { fetchPrice, type ApiConfig } from '../lib/priceApi';
+import { fetchPrice, ApiConfig } from '../lib/priceApi';
+import { getMultiplier } from '../lib/multipliers';
 
 export default function StrategyBuilder() {
   const { strategy, setStrategy, addLeg, removeLeg, updateLeg, calculateStrategyPnL, calculateStrategyGreeks } = useStrategy();
@@ -141,7 +142,15 @@ export default function StrategyBuilder() {
                   <Input
                     type="text"
                     value={strategy.underlyingSymbol || ''}
-                    onChange={(e) => setStrategy({ ...strategy, underlyingSymbol: e.target.value.toUpperCase() })}
+                    onChange={(e) => {
+                      const newSymbol = e.target.value.toUpperCase();
+                      const newMultiplier = getMultiplier(newSymbol);
+                      setStrategy({ 
+                        ...strategy, 
+                        underlyingSymbol: newSymbol,
+                        multiplier: newMultiplier
+                      });
+                    }}
                     placeholder="es. AAPL"
                     className="h-8 bg-slate-800 uppercase flex-1"
                   />
@@ -178,6 +187,18 @@ export default function StrategyBuilder() {
                   className="h-8 bg-slate-800"
                   step="0.01"
                 />
+              </div>
+
+              <div>
+                <Label className="text-xs text-slate-400">Moltiplicatore</Label>
+                <Input
+                  type="number"
+                  value={strategy.multiplier}
+                  onChange={(e) => setStrategy({ ...strategy, multiplier: Number(e.target.value) })}
+                  className="h-8 bg-slate-800"
+                  step="1"
+                />
+                <p className="text-xs text-slate-500 mt-1">Contratto = Prezzo × Moltiplicatore</p>
               </div>
 
               <Button
@@ -559,6 +580,7 @@ export default function StrategyBuilder() {
           currentPrice={currentPrice}
           daysElapsed={daysElapsed}
           volChange={volChange}
+          multiplier={strategy.multiplier}
         />
       </div>
     </div>

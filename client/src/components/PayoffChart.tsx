@@ -9,9 +9,10 @@ interface PayoffChartProps {
   currentPrice: number;
   daysElapsed: number;
   volChange: number;
+  multiplier: number;
 }
 
-export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: PayoffChartProps) {
+export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multiplier }: PayoffChartProps) {
   // Genera dati per il grafico
   const chartData = useMemo(() => {
     if (legs.length === 0) return [];
@@ -66,9 +67,9 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
           optionPrice = result.price;
         }
 
-        const legPnL = leg.position === 'long' 
+        const legPnL = (leg.position === 'long' 
           ? (optionPrice - leg.premium) * leg.quantity
-          : (leg.premium - optionPrice) * leg.quantity;
+          : (leg.premium - optionPrice) * leg.quantity) * multiplier;
 
         // Calcola P&L "a scadenza" della prima opzione
         // Se questo leg scade alla stessa data della scadenza più vicina, usa valore intrinseco
@@ -109,9 +110,9 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
           }
         }
         
-        const legPnLAtExpiry = leg.position === 'long'
+        const legPnLAtExpiry = (leg.position === 'long'
           ? (optionPriceAtNearestExpiry - leg.premium) * leg.quantity
-          : (leg.premium - optionPriceAtNearestExpiry) * leg.quantity;
+          : (leg.premium - optionPriceAtNearestExpiry) * leg.quantity) * multiplier;
 
         point[`leg${index}`] = legPnL;
         totalPnL += legPnL;
