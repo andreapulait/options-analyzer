@@ -16,6 +16,12 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
   const chartData = useMemo(() => {
     if (legs.length === 0) return [];
 
+    // Trova la scadenza più vicina per il calcolo "a scadenza"
+    const today = new Date();
+    const expirationDates = legs.map(leg => new Date(leg.expiration).getTime());
+    const nearestExpiration = Math.min(...expirationDates);
+    const nearestExpirationDays = Math.max(0, Math.floor((nearestExpiration - today.getTime()) / (1000 * 60 * 60 * 24)));
+
     // Determina il range di prezzi da visualizzare
     const strikes = legs.map(leg => leg.strike);
     const minStrike = Math.min(...strikes);
@@ -35,7 +41,6 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
       legs.forEach((leg, index) => {
         // Calcola giorni alla scadenza dalla data di expiration
         const expirationDate = new Date(leg.expiration);
-        const today = new Date();
         const daysToExpiry = Math.max(0, Math.floor((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
         const timeToExpiry = Math.max(0, (daysToExpiry - daysElapsed) / 365);
         const iv = leg.iv + volChange / 100;
@@ -65,16 +70,48 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange }: Payo
           ? (optionPrice - leg.premium) * leg.quantity
           : (leg.premium - optionPrice) * leg.quantity;
 
-        // Calcola P&L a scadenza (solo valore intrinseco)
-        let intrinsicValue = 0;
-        if (leg.type === 'call') {
-          intrinsicValue = Math.max(0, price - leg.strike);
+        // Calcola P&L "a scadenza" della prima opzione
+        // Se questo leg scade alla stessa data della scadenza più vicina, usa valore intrinseco
+        // Altrimenti, calcola il valore con il tempo residuo
+        let optionPriceAtNearestExpiry = 0;
+        const isNearestExpiry = Math.abs(expirationDate.getTime() - nearestExpiration) < 24 * 60 * 60 * 1000; // Tolleranza 1 giorno
+        
+        if (isNearestExpiry) {
+          // Questa opzione scade: usa solo valore intrinseco
+          if (leg.type === 'call') {
+            optionPriceAtNearestExpiry = Math.max(0, price - leg.strike);
+          } else {
+            optionPriceAtNearestExpiry = Math.max(0, leg.strike - price);
+          }
         } else {
-          intrinsicValue = Math.max(0, leg.strike - price);
+          // Questa opzione ha ancora tempo: calcola valore con tempo residuo
+          const remainingDays = daysToExpiry - nearestExpirationDays;
+          const remainingTime = Math.max(0, remainingDays / 365);
+          
+          if (leg.type === 'call') {
+            const result = calculateCall({
+              S: price,
+              K: leg.strike,
+              T: remainingTime,
+              sigma: Math.max(0.01, iv),
+              r: 0.03
+            });
+            optionPriceAtNearestExpiry = result.price;
+          } else {
+            const result = calculatePut({
+              S: price,
+              K: leg.strike,
+              T: remainingTime,
+              sigma: Math.max(0.01, iv),
+              r: 0.03
+            });
+            optionPriceAtNearestExpiry = result.price;
+          }
         }
+        
         const legPnLAtExpiry = leg.position === 'long'
-          ? (intrinsicValue - leg.premium) * leg.quantity
-          : (leg.premium - intrinsicValue) * leg.quantity;
+          ? (optionPriceAtNearestExpiry - leg.premium) * leg.quantity
+          : (leg.premium - optionPriceAtNearestExpiry) * leg.quantity;
 
         point[`leg${index}`] = legPnL;
         totalPnL += legPnL;
