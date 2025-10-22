@@ -338,14 +338,6 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
             
             {/* Linea zero */}
             <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
-            
-            {/* Linea prezzo corrente */}
-            <ReferenceLine 
-              x={currentPrice} 
-              stroke="#fbbf24" 
-              strokeDasharray="5 5"
-              label={{ value: 'Prezzo Corrente', fill: '#fbbf24', position: 'top' }}
-            />
 
             {/* Linee break-even */}
             {breakEvenPoints.map((point, i) => (
@@ -391,6 +383,20 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={false}
+            />
+            
+            {/* Linea prezzo corrente - renderizzata per ultima per essere sempre visibile */}
+            <ReferenceLine 
+              x={currentPrice} 
+              stroke="#fbbf24" 
+              strokeWidth={3}
+              strokeDasharray="5 5"
+              label={{ 
+                value: `Corrente: $${currentPrice.toFixed(2)}`, 
+                fill: '#fbbf24', 
+                position: 'top',
+                style: { fontWeight: 'bold' }
+              }}
             />
           </LineChart>
         </ResponsiveContainer>
