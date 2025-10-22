@@ -146,42 +146,51 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
     }
 
     return data;
-  }, [legs, daysElapsed, volChange]);
+  }, [legs, daysElapsed, volChange, zoomLevel, currentPrice, multiplier]);
 
   // Calcola break-even points
   const breakEvenPoints = useMemo(() => {
     const points: number[] = [];
-    for (let i = 1; i < chartData.length; i++) {
-      const prev = chartData[i - 1];
-      const curr = chartData[i];
+    let wasNegative = false;
+    let wasPositive = false;
+    
+    for (let i = 0; i < chartData.length; i++) {
+      const point = chartData[i];
       
       // Verifica che i valori siano validi
-      if (!isFinite(prev.total) || !isFinite(curr.total) || !isFinite(prev.price) || !isFinite(curr.price)) {
+      if (!isFinite(point.total) || !isFinite(point.price)) {
         continue;
       }
       
-      if ((prev.total <= 0 && curr.total >= 0) || (prev.total >= 0 && curr.total <= 0)) {
-        // Interpolazione lineare per trovare il punto esatto
-        const denominator = Math.abs(prev.total) + Math.abs(curr.total);
+      // Traccia se abbiamo visto valori positivi o negativi
+      if (point.total > 0.01) wasPositive = true;
+      if (point.total < -0.01) wasNegative = true;
+      
+      // Cerca attraversamenti dello zero solo se ci sono sia valori positivi che negativi
+      if (i > 0 && wasPositive && wasNegative) {
+        const prev = chartData[i - 1];
         
-        // Evita divisione per zero
-        if (denominator < 0.01) {
-          // Se entrambi i valori sono molto vicini a zero, usa il punto medio
-          const breakEven = (prev.price + curr.price) / 2;
-          if (isFinite(breakEven) && !points.includes(breakEven)) {
-            points.push(breakEven);
-          }
-        } else {
-          const ratio = Math.abs(prev.total) / denominator;
-          const breakEven = prev.price + (curr.price - prev.price) * ratio;
+        // Verifica attraversamento dello zero con soglia più stretta
+        if ((prev.total < -0.01 && point.total > 0.01) || (prev.total > 0.01 && point.total < -0.01)) {
+          // Interpolazione lineare per trovare il punto esatto
+          const denominator = Math.abs(prev.total) + Math.abs(point.total);
           
-          // Verifica che il break-even sia valido e non duplicato
-          if (isFinite(breakEven) && !points.includes(breakEven)) {
-            points.push(breakEven);
+          if (denominator > 0.01) {
+            const ratio = Math.abs(prev.total) / denominator;
+            const breakEven = prev.price + (point.price - prev.price) * ratio;
+            
+            // Verifica che il break-even sia valido e non troppo vicino ad altri
+            if (isFinite(breakEven)) {
+              const isDuplicate = points.some(p => Math.abs(p - breakEven) < 0.5);
+              if (!isDuplicate) {
+                points.push(breakEven);
+              }
+            }
           }
         }
       }
     }
+    
     return points;
   }, [chartData]);
 
