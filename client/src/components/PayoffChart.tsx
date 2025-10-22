@@ -388,14 +388,14 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
             {/* Linea prezzo corrente - renderizzata per ultima per essere sempre visibile */}
             <ReferenceLine 
               x={currentPrice} 
-              stroke="#fbbf24" 
-              strokeWidth={3}
+              stroke="#fb923c" 
+              strokeWidth={1}
               strokeDasharray="5 5"
               label={{ 
                 value: `Corrente: $${currentPrice.toFixed(2)}`, 
-                fill: '#fbbf24', 
+                fill: '#fb923c', 
                 position: 'top',
-                style: { fontWeight: 'bold' }
+                style: { fontWeight: 'bold', fontSize: '12px' }
               }}
             />
           </LineChart>
