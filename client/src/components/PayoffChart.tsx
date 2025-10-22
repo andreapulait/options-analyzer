@@ -385,6 +385,18 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
               dot={false}
             />
             
+            {/* Linea dummy per legenda prezzo corrente */}
+            <Line
+              type="monotone"
+              dataKey="_currentPriceMarker"
+              name={`Prezzo Corrente: $${currentPrice.toFixed(2)}`}
+              stroke="#fb923c"
+              strokeWidth={1}
+              strokeDasharray="5 5"
+              dot={false}
+              legendType="line"
+            />
+            
             {/* Linea prezzo corrente - renderizzata per ultima per essere sempre visibile */}
             <ReferenceLine 
               x={currentPrice} 
@@ -392,10 +404,10 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
               strokeWidth={1}
               strokeDasharray="5 5"
               label={{ 
-                value: `Corrente: $${currentPrice.toFixed(2)}`, 
+                value: `$${currentPrice.toFixed(2)}`, 
                 fill: '#fb923c', 
                 position: 'top',
-                style: { fontWeight: 'bold', fontSize: '12px' }
+                style: { fontWeight: 'bold', fontSize: '11px' }
               }}
             />
           </LineChart>
