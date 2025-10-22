@@ -1,6 +1,8 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ZoomIn, ZoomOut } from 'lucide-react';
 import type { OptionLeg } from '@/types/strategy';
 import { calculateCall, calculatePut } from '@/lib/blackScholes';
 
@@ -14,6 +16,21 @@ interface PayoffChartProps {
 }
 
 export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multiplier, onStatsCalculated }: PayoffChartProps) {
+  const [zoomLevel, setZoomLevel] = useState(100); // 100 = default, 50 = zoom in 2x, 200 = zoom out 2x
+
+  // Funzioni per gestire lo zoom
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.max(20, prev - 20)); // Min 20% (zoom in massimo)
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.min(300, prev + 20)); // Max 300% (zoom out massimo)
+  };
+
+  const handleZoomReset = () => {
+    setZoomLevel(100);
+  };
+
   // Genera dati per il grafico
   const chartData = useMemo(() => {
     if (legs.length === 0) return [];
@@ -24,13 +41,16 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
     const nearestExpiration = Math.min(...expirationDates);
     const nearestExpirationDays = Math.max(0, Math.floor((nearestExpiration - today.getTime()) / (1000 * 60 * 60 * 24)));
 
-    // Determina il range di prezzi da visualizzare
+    // Determina il range di prezzi da visualizzare con zoom
     const strikes = legs.map(leg => leg.strike);
     const minStrike = Math.min(...strikes);
     const maxStrike = Math.max(...strikes);
-    const range = maxStrike - minStrike || 50;
-    const minPrice = Math.max(0, minStrike - range);
-    const maxPrice = maxStrike + range;
+    const baseRange = maxStrike - minStrike || 50;
+    const zoomFactor = zoomLevel / 100;
+    const range = baseRange * zoomFactor;
+    const centerPrice = currentPrice; // Centra sul prezzo corrente
+    const minPrice = Math.max(0, centerPrice - range);
+    const maxPrice = centerPrice + range;
     const step = (maxPrice - minPrice) / 100;
 
     const data = [];
@@ -179,6 +199,57 @@ export function PayoffChart({ legs, currentPrice, daysElapsed, volChange, multip
         <div>
           <h3 className="text-lg font-semibold">Grafico Payoff</h3>
           <p className="text-sm text-slate-400">P&L vs Prezzo Sottostante</p>
+        </div>
+
+        {/* Controlli Zoom */}
+        <div className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleZoomIn}
+              disabled={zoomLevel <= 20}
+              className="h-8 w-8 p-0"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleZoomOut}
+              disabled={zoomLevel >= 300}
+              className="h-8 w-8 p-0"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleZoomReset}
+              className="h-8 px-3 text-xs"
+            >
+              Reset
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-3 flex-1 ml-6">
+            <span className="text-xs text-slate-400 whitespace-nowrap">Range:</span>
+            <input
+              type="range"
+              min="20"
+              max="300"
+              step="10"
+              value={zoomLevel}
+              onChange={(e) => setZoomLevel(Number(e.target.value))}
+              className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((zoomLevel - 20) / 280) * 100}%, #475569 ${((zoomLevel - 20) / 280) * 100}%, #475569 100%)`
+              }}
+            />
+            <span className="text-xs text-slate-300 font-mono whitespace-nowrap min-w-[60px] text-right">
+              {zoomLevel}%
+            </span>
+          </div>
         </div>
 
         {/* Statistiche */}
