@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,17 @@ export default function StrategyBuilder() {
   const [showApiSettings, setShowApiSettings] = useState(false);
   const [finnhubKey, setFinnhubKey] = useState('');
   const [alphaVantageKey, setAlphaVantageKey] = useState('');
+
+  // Calcola la scadenza più vicina per lo slider tempo
+  const maxDaysToExpiry = useMemo(() => {
+    if (strategy.legs.length === 0) return 60; // Default se non ci sono legs
+    const today = new Date();
+    const daysToExpiryArray = strategy.legs.map(leg => {
+      const expirationDate = new Date(leg.expiration);
+      return Math.max(0, Math.floor((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    });
+    return Math.min(...daysToExpiryArray); // Scadenza più vicina
+  }, [strategy.legs]);
 
   const pnl = calculateStrategyPnL(currentPrice, daysElapsed, volChange);
   const greeks = calculateStrategyGreeks(currentPrice, daysElapsed, volChange);
@@ -391,22 +402,22 @@ export default function StrategyBuilder() {
                     <div className="flex justify-between items-center mb-2">
                       <Label className="text-sm font-medium">Tempo (DTE)</Label>
                       <span className="text-lg font-bold text-green-400">
-                        {Math.max(0, 60 - daysElapsed)} giorni
+                        {Math.max(0, maxDaysToExpiry - daysElapsed)} giorni
                         <span className="text-sm ml-2">
-                          ({((daysElapsed / 60) * 100).toFixed(0)}% trascorso)
+                          ({maxDaysToExpiry > 0 ? ((daysElapsed / maxDaysToExpiry) * 100).toFixed(0) : 0}% trascorso)
                         </span>
                       </span>
                     </div>
                     <Slider
                       value={[daysElapsed]}
-                      onValueChange={(value) => setDaysElapsed(value[0])}
+                      onValueChange={(value) => setDaysElapsed(Math.min(value[0], maxDaysToExpiry))}
                       min={0}
-                      max={60}
+                      max={maxDaysToExpiry}
                       step={1}
                       className="py-4"
                     />
                     <div className="flex justify-between text-xs text-slate-500 mt-1">
-                      <span>Inizio (60 DTE)</span>
+                      <span>Inizio ({maxDaysToExpiry} DTE)</span>
                       <span>Scadenza (0 DTE)</span>
                     </div>
                   </div>
